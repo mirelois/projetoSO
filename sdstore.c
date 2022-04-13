@@ -15,7 +15,12 @@ int main(int argc, char const *argv[])
     } else if (strcmp(argv[1], "proc-file") == 0) {
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
-        //esperar pelas informações do servidor? para imprimir pending, processing e concluded
+        //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome
+        //open pipe com nome
+        char buffer[50];
+        int bytes_read;
+        //read pipe com nome
+        write(1, buffer, bytes_read);
     }
     return 0;
 }
