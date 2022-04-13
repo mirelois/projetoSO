@@ -5,7 +5,7 @@ int main(int argc, char const *argv[])
     //quantos argumentos são precisos?
     //0 -> help
     //1 -> status
-    //2+ -> procfile
+    //1+ -> procfile
     switch (argc)
     {
     case 1:
