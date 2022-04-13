@@ -39,20 +39,23 @@ int main(int argc, char const *argv[])
         //fazer dup do stdin direto para o ficheiro OU fazer dup para um pipe e escrever nesse pipe
         //quando fazer open do ficheiro inicial/final? antes ou depois do fork?
     
-
+    //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
+    //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
+    //esperar pelo sinal de término para poder decrementar do dicionário
     return 0;
 }
 
 int executaPedido(char *pasta, int fd_i, int fd_f, char *transfs[], int n_transf) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
-        //why? código. constantemente copiar o dicionário para cada manager
+        //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
         //importa a função? vai copiar o processo inteiro?
     int manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
         perror("Failed Fork to Manager");
     } else if (manager == 0) {
+        //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
         if (n_transf == 1) {
             switch (fork())
             {
@@ -114,6 +117,8 @@ int executaPedido(char *pasta, int fd_i, int fd_f, char *transfs[], int n_transf
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
     } else {
-
+        //não fazer nada de jeito ou um wait não bloqueante
+        //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
+        //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
     }
 }
