@@ -20,6 +20,7 @@ int main(int argc, char const *argv[])
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final
     //1ª coisa que ele faz:
     //ler todas as transfs e guardar num dicionário quantas são de cada
+    
     //ver se nenhuma delas excede o valor max == nunca vai ser executado => atirar para o lixo oops (não encher a queue)
         //nesse caso deu barraco senhor cliente
 
@@ -41,11 +42,11 @@ int main(int argc, char const *argv[])
     
     //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
-    //esperar pelo sinal de término para poder decrementar do dicionário
+    //esperar pelo sinal de término para poder decrementar do dicionário dos maxs e retirar do dicionário das transfs
     return 0;
 }
 
-int executaPedido(char *pasta, int fd_i, int fd_f, char *transfs[], int n_transf) {
+int executaPedido(/*Pedido *pedido, char* pasta*/) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
