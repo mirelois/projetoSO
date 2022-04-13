@@ -1,5 +1,11 @@
 #include "sdstore.h"
 
+/**
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char const *argv[])
 {
     //quantos argumentos são precisos?
