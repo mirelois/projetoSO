@@ -1,5 +1,15 @@
 #include "sdstore.h"
 
+typedef struct pedido {
+    //guardar strings para não sobrecarregar fd's do servidor
+    char *file_in;
+    char *file_out;
+    char *transfs[];
+    int n_transfs;
+    int priority;
+    //apontador para hashtable para guardar os valores dos pedidos
+}Pedido;
+
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
@@ -52,7 +62,7 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-int executaPedido(/*Pedido *pedido, char* pasta*/) {
+int executaPedido(Pedido *pedido, char *pasta) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
@@ -63,14 +73,19 @@ int executaPedido(/*Pedido *pedido, char* pasta*/) {
         perror("Failed Fork to Manager");
     } else if (manager == 0) {
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
-        if (n_transf == 1) {
+        if (pedido->n_transfs == 1) {
             switch (fork())
             {
             case 0:
                 char buffer[strlen(pasta) + strlen(transfs[0]) + 1];
-                int ret;
+                //responsabilidade do manager abrir e fichar os fds
+                int ret, fd_i, fd_o;
+                fd_i = open(pedido->file_in, O_RDONLY);
+                fd_o = open(pedido->file_out, O_CREAT | O_TRUNC | O_WRONLY, 0666); //pôr if's à volta dos opens
                 dup2(fd_i, 0);
-                dup2(fd_f, 1); //pôr if's à volta dos dups
+                dup2(fd_o, 1); //pôr if's à volta dos dups
+                close(fd_i);
+                close(fd_o);
                 sprintf(buffer, "%s/%s", pasta, transfs[0]);
                 ret = execl(buffer, buffer);
                 perror("Failed Exec Manager Child");
@@ -100,7 +115,7 @@ int executaPedido(/*Pedido *pedido, char* pasta*/) {
             }
             int i;
             //0 fork->dups especiais de in->exec
-            for (i = 1; i<n_transf-1; i++) {
+            for (i = 1; i< pedido->n_transfs - 1; i++) {
                 //fork->dups alternantes (i%2)->exec
             }
             //n_transf-1 fork->dup especial COM CONTA DO ALTERNANTE (i%2) de out->exec
