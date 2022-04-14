@@ -7,6 +7,12 @@ int main(int argc, char const *argv[])
 {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
+    int fdConfig;
+    if (argc < 3 || (fdConfig = open(argv[1], O_RDONLY)) == -1) {
+        //como validar um path (pasta)?
+        perror("Failed to execute server");
+        return -1;
+    }
 
     char pasta[] = argv[2];
     //lembrar da pasta em algum sítio para os executáveis
