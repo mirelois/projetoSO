@@ -14,11 +14,12 @@ int hash(char key[], int size) {
 
 
 void initHT(HT *h, int size) {
-    h = calloc(size,sizeof(HT));
-    h->used = 0;
+    h->tbl = calloc(size, sizeof(struct pair));
     h->size = size;
-    for(int i = 0 ; i < size ; i++){
-        strcpy((h->tbl)[i].key , EMPTY);
+    h->used = 0;
+    for (int i=0; i<size; i++) {
+        strcpy(h->tbl[i].key, EMPTY);
+        h->tbl[i].value = -1;
     }
 }
 
@@ -37,11 +38,18 @@ int isprime(int p){
 }
 
 
-int writeHT(HT *h, char key[], int value){
-    int p;
-    for(p = hash(key , h->size) ; FREE ; p = (p + 1)%(h->size));
-    strcpy((h->tbl)[p].key , key);
+//assume que ha espaço
+//nao é dinamico
+int writeHT (HT *h, char key[], int value) {
+
+    int p= hash(key, h->size);
+
+    for(p; !FREE(p); p = (p+1)%(h->size)){printf("%d\n", p);};
+
+    strcpy((h->tbl)[p].key, key);
+    (h->tbl)[p].value = value;
     h->used++;
+
     return p;
 }
 

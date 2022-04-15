@@ -1,4 +1,5 @@
-#define FREE (h->tbl)[p].key != EMPTY && (h->tbl)[p].key != DELETED
+
+#define FREE(p) strcmp((h->tbl)[p].key, EMPTY) == 0 || strcmp((h->tbl)[p].key, DELETED) == 0
 
 #define EMPTY       "-"
 #define DELETED     "+"
