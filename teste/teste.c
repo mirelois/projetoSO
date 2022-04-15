@@ -1,4 +1,4 @@
-#define MAX_BUFF 1024
+#define MAX_BUFF 9
 #define DICT_SIZE 13 //possivel ter que mudar
 #include "includes.h"
 #include "hashtable.h"
@@ -47,8 +47,6 @@ int readConfigNew(int fd, HT *hash_table) {
     return 0;
 }
 
-//esta está testada e funciona
-
 ssize_t readConfig(int fd, HT *hash_table) {
 
     initHT(hash_table, DICT_SIZE);
@@ -63,7 +61,7 @@ ssize_t readConfig(int fd, HT *hash_table) {
             flag_continue = 0;
             continue;
         }
-
+        printf("\n\nbuffer(%s)\n\n", buff);
         int i = 0;
         int word_size = 0;
 
@@ -79,9 +77,11 @@ ssize_t readConfig(int fd, HT *hash_table) {
             dist = word_size;
 
             if (!flag_bytes_read){
-                lseek(fd, -dist, SEEK_CUR);
+                printf("\ndist-1-(%d)\n",dist);
+                lseek(fd, -10, SEEK_CUR);
 
                 flag_continue = 1;
+                break;
             }
             char dict_key[word_size+1]; // declara key com max size = bytes_read. E se istruçao 
 
@@ -101,8 +101,10 @@ ssize_t readConfig(int fd, HT *hash_table) {
             dist += word_size;
 
             if (!flag_bytes_read){
-                lseek(fd, -dist, SEEK_CUR);
+                printf("\ndist-2-(%d)\n",dist);
+                lseek(fd, dist, SEEK_CUR);
                 flag_continue = 1;
+                break;
             }
 
 
@@ -120,9 +122,45 @@ ssize_t readConfig(int fd, HT *hash_table) {
             dist = 0;
 
             writeHT(hash_table, dict_key, atoi(dict_value));
-    }   
+        }   
 
+    }
 }
+
+int printHT(HT *h, int size) {
+    for(int i = 0; i < size; i++) {
+        printf("%d -> (%s,%d)\n",i ,(h->tbl)[i].key, (h->tbl)[i].value);
+    }
+    return 0;
+}
+
+
+
+int main() {
+
+    int fd = open("sdstored.conf", O_RDONLY, 444);
+
+    HT *h = malloc(sizeof(HT));
+
+    //printf("a\n");
+    initHT(h, 13);
+    //printf("b\n");
+    readConfig(fd, h);
+    /*
+    writeHT(h, "key1", 1);
+    writeHT(h, "key2", 2);
+    writeHT(h, "key3", 3);
+    writeHT(h, "key4", 4);
+    writeHT(h, "key5", 5);
+    writeHT(h, "key12", 12);
+     writeHT(h, "key13", 13);
+     */
+    printHT(h, 13);
+    //printf("c\n");
+    return 0;
+}
+
+
 
 
 
