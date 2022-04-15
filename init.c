@@ -3,6 +3,49 @@
 #include "includes.h"
 #include "hashtable.h"
 
+int readConfigNew(int fd, HT *hash_table) {
+    initHT(hash_table, DICT_SIZE);
+    int bytes_read, i = 0, word_size;
+    char buff[MAX_BUFF], dict_key[20], dict_value[5];
+    bytes_read = read(fd, buff, MAX_BUFF);
+    while(bytes_read > 0) {
+        word_size = 0;
+        while(i<bytes_read && buff[i] != ' ') {
+            dict_key[word_size++] = buff[i];
+            if (i == bytes_read - 1) {
+                bytes_read = read(fd, buff, MAX_BUFF);
+                i = 0;
+            } else {
+                i++;
+            }
+        }
+        dict_key[word_size+1] = '\0';
+        i++; //ew tenho de fazer read aqui again
+        if (i == bytes_read) {
+            bytes_read = read(fd, buff, MAX_BUFF);
+            i = 0;
+        }
+
+        word_size = 0;
+        while(i<bytes_read && buff[i] != '\n') {
+            dict_value[word_size++] = buff[i];
+            if (i == bytes_read - 1) {
+                bytes_read = read(fd, buff, MAX_BUFF);
+                i = 0;
+            } else {
+                i++;
+            }
+        }
+        dict_value[word_size+1] = '\0';
+        i++;
+        writeHT(h, dict_key, atoi(dict_value));
+        if (i == bytes_read) {
+            bytes_read = read(fd, buff, MAX_BUFF);
+            i = 0;
+        }
+    }
+    return 0;
+}
 
 //n sei se funciona
 
