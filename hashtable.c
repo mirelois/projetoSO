@@ -77,8 +77,10 @@ int readHT(HT *h, char key[], int* value){
 
 
 int deleteHT (HT *h, char key[]) {
-    int* x;
-    int p = readHT(h,key,x);
-    if(p != -1){strcmp((h->tbl)[p].key,DELETED);}
+    int x;
+    int p = readHT(h, key, &x);
+    if(p != -1) {
+        strcpy((h->tbl)[p].key, DELETED);
+    }
     return p;
 }
