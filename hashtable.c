@@ -40,7 +40,7 @@ int isprime(int p){
 
 //assume que ha espaço
 //nao é dinamico
-int writeHT (HT *h, char key[], int value) {
+int writeHTaux (HT *h, char key[], int value) {
 
     int p= hash(key, h->size);
 
@@ -51,6 +51,35 @@ int writeHT (HT *h, char key[], int value) {
     h->used++;
 
     return p;
+}
+
+int writeHT (HT *h, char key[], int value) {
+
+    writeHTaux(h, key, value);
+
+    float charge = ((float)(h->used))/(h->size);
+
+    if(charge >= MAX_CHARGE) {
+
+        HT *new_h = malloc(sizeof(HT));
+
+        for(int new_size = (h->size)*2; !isprime(new_size); new_size++) {
+
+            initHT(new_h, new_size+1);
+
+            for(int i = 0; i < h->size; i++) {
+                
+                writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+            }
+
+        }
+
+        *h = *new_h;
+
+        free(new_h);//maybe not enough
+        
+    }
+
 }
 
 
