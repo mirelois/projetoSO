@@ -1,15 +1,5 @@
 #include "sdstored.h"
 
-typedef struct pedido {
-    //guardar strings para não sobrecarregar fd's do servidor
-    char *file_in;
-    char *file_out;
-    char *transfs[];
-    int n_transfs;
-    int priority;
-    //apontador para hashtable para guardar os valores dos pedidos
-}Pedido;
-
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 

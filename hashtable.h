@@ -1,6 +1,6 @@
 
-#define FREE(p) strcmp((h->tbl)[p].key, EMPTY) == 0 || strcmp((h->tbl)[p].key, DELETED) == 0
 #define MAX_CHARGE 0.75
+#define FREE(p) strcmp((h->tbl)[p].key, EMPTY) == 0 || strcmp((h->tbl)[p].key, DELETED) == 0
 
 #define EMPTY       "-"
 #define DELETED     "+"
