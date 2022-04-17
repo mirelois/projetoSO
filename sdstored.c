@@ -74,7 +74,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
             {
             case 0:
                 char buffer[strlen(pasta) + strlen(transfs[0]) + 1];
-                //responsabilidade do manager abrir e fichar os fds
+                //responsabilidade do manager abrir e fichar os fds -> não sobrecarregar os fd's do server
                 int ret, fd_i, fd_o;
                 fd_i = open(pedido->file_in, O_RDONLY);
                 fd_o = open(pedido->file_out, O_CREAT | O_TRUNC | O_WRONLY, 0666); //pôr if's à volta dos opens
