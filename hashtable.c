@@ -44,7 +44,7 @@ int writeHT (HT *h, char key[], int value) {
 
     int p= hash(key, h->size);
 
-    for(p; !FREE(p); p = (p+1)%(h->size)){printf("%d\n", p);};
+    for(p; !FREE(p); p = (p+1)%(h->size));
 
     strcpy((h->tbl)[p].key, key);
     (h->tbl)[p].value = value;
@@ -52,6 +52,8 @@ int writeHT (HT *h, char key[], int value) {
 
     return p;
 }
+
+
 
 /*
 int writeHT(HT *h, char key[], int value){
@@ -63,18 +65,16 @@ int writeHT(HT *h, char key[], int value){
 */
 
 int readHT(HT *h, char key[], int* value){
-    int p , r = -1 , c = h->size;
-    for(p = hash(key,h->size); strcmp(key,(h->tbl)[p].key) && (c > 0);c--){
+    int p , r = -1 , c = h->size, flg;
+    for(p = hash(key,h->size); strcmp(key,(h->tbl)[p].key) && (c > 0) && (flg = strcmp(EMPTY,(h->tbl)[p].key)); c--){
         p = (p+1)%(h->size);
     }
-    if(c != 0){
+    if(c != 0 && !flg){
         r = p;
         *value = (h->tbl)[p].value;
     }
     return r;
 }
-
-
 
 int deleteHT (HT *h, char key[]) {
     int x;
