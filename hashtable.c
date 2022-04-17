@@ -63,13 +63,16 @@ int writeHT (HT *h, char key[], int value) {
 
         HT *new_h = malloc(sizeof(HT));
 
-        for(int new_size = (h->size)*2; !isprime(new_size); new_size++) {
+        int new_size;
 
-            initHT(new_h, new_size+1);
-        }
+        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
+
+        initHT(new_h, new_size+1);
+
         for(int i = 0; i < h->size; i++) {
-                
+            
             writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+            
         }
 
 
