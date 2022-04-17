@@ -23,6 +23,12 @@ int main(int argc, char const *argv[])
 
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
 
+    //não esquecer de fazer o status
+        //tem diferente input
+        //apenas imprime o que está a ser processado (não o que está à espera)
+        //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
+            //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
+
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final
     //1ª coisa que ele faz:
     //ler todas as transfs e guardar num dicionário quantas são de cada
@@ -48,7 +54,7 @@ int main(int argc, char const *argv[])
     
     //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
-    //esperar pelo sinal de término para poder decrementar do dicionário dos maxs e retirar do dicionário das transfs
+    //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
     return 0;
 }
 
