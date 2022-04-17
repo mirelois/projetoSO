@@ -1,4 +1,4 @@
-#include "sdstore.h"
+#include "sdstored.h"
 
 typedef struct pedido {
     //guardar strings para não sobrecarregar fd's do servidor
