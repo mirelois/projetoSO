@@ -66,13 +66,12 @@ int writeHT (HT *h, char key[], int value) {
         for(int new_size = (h->size)*2; !isprime(new_size); new_size++) {
 
             initHT(new_h, new_size+1);
-
-            for(int i = 0; i < h->size; i++) {
-                
-                writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
-            }
-
         }
+        for(int i = 0; i < h->size; i++) {
+                
+            writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+        }
+
 
         *h = *new_h;
 
