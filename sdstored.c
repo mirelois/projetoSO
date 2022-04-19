@@ -117,28 +117,28 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 } //pôr if's à volta dos opens (já pus -- carlos)
 
                 if((dup2(fd_i, 0)) == -1){
-                    perror("Failed to dup the input");
+                    write(2, "Failed to dup the input", 24);
                     _exit(-1);
                 }
 
                 if((dup2(fd_o, 1)) == -1){
-                    perror("Failed to dup the output");
+                    write(2, "Failed to dup the output", 25);
                     _exit(-1);
                 } //pôr if's à volta dos dups (já pus -- carlos)
                 close(fd_i);
                 close(fd_o);
                 sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
                 ret = execl(buffer, buffer);
-                perror("Failed Exec Manager Child");
+                write(2, "Failed Exec Manager Child", 26);
                 _exit(ret);
             case -1:
-                perror("Failed Fork Manager to Child");
+                write(2, "Failed Fork Manager to Child", 29);
                 _exit(-1);
             default:
                 int status;
                 wait(&status);
                 if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                    perror("Failed Exec or Transf");
+                    write(2, "Failed Exec or Transf", 22);
                     _exit(-1);
                 }
                 _exit(0);
@@ -147,37 +147,37 @@ int executaPedido(Pedido *pedido, char *pasta) {
             int p1[2];
             int p2[2];
             if (pipe(p1)==-1) {
-                perror("Failed pipe 1");
+                write(2, "Failed pipe 1", 14);
                 _exit(-1);
             }
             if (pipe(p2)==-1) {
-                perror("Failed pipe 2");
+                write(2, "Failed pipe 2", 14);
                 _exit(-1);
             }
             int i;
             //0 fork->dups especiais de in->exec
             switch(fork()){ // Primeiro fork -> dup(..., 0) -> exec
                 case -1:
-                    perror("Failed Fork Manager to Child");
+                    write(2, "Failed Fork Manager to Child", 29);
                     _exit(-1);
                 case 0:
                     int fd_i, fd_o;
                     if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
-                        perror("Failed to open file in");
+                        write(2, "Failed to open file in", 23);
                         _exit(-1);
                     }
                     if((fd_o = open(p1[1], O_WRONLY)) == -1){
-                        perror("Failed to open pipe");
+                        write(2, "Failed to open pipe", 20);
                         _exit(-1);
                     }
 
                     if((dup2(fd_i, 0)) == -1){
-                        perror("Failed to dup the input");
+                        write(2, "Failed to dup the input", 24);
                         _exit(-1);
                     }
 
                     if((dup2(fd_o, 1)) == -1){
-                        perror("Failed to dup the output");
+                        write(2, "Failed to dup the output", 25);
                         _exit(-1);
                     }
                     close(fd_i);
@@ -185,13 +185,13 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     char buffer[strlen(pasta) + strlen(pedido->pedido[2]) + 1];
                     sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
                     int ret = execl(buffer, buffer);
-                    perror("Failed Exec Manager Child");
+                    write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
                 default:
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                        perror("Failed Exec or Transf");
+                        write(2, "Failed Exec or Transf", 22);
                         _exit(-1);
                     }
             }
