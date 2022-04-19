@@ -1,5 +1,5 @@
 #include "sdstore.h"
-
+#include "init.h"
 /**
  *
  * @param argc
@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
     } else if (argc >= 2 && strcmp(argv[1], "proc-file") == 0) {
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
-        //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome 
+        //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome???
         //open pipe com nome
 
         //escrever primeiro um int que é o n_transfs
@@ -30,15 +30,20 @@ int main(int argc, char const *argv[])
             //literalmente só escrever no pipe...oq?
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
+        char *string;
+        string = strArrayToString(argc-1, argv+1, string);
+        //write(pipe, string, strlen(string));
+        free(string);
         
         //vai ler e escrever 3 vezes
         char buffer[50];
         int bytes_read;
         int i;
         for (i = 0; i<3;i++) {
-            //read pipe com nome
+            //read pipe com nome NÃO LÊ NADA QUE ISTO DÁ ASNEIRA
             write(1, buffer, bytes_read);
         }
+        
     }
     return 0;
 }

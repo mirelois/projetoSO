@@ -4,10 +4,12 @@
 #include "hashtable.h"
 #include "stdio.h"
 #include <fcntl.h>
+#include "init.h"
+#include "malloc.h"
 
 typedef struct pedido {
     //guardar strings para não sobrecarregar fd's do servidor
-    char *pedido[];
+    char **pedido;
     int n_transfs;
     //apontador para hashtable para guardar os valores dos pedidos
     HT *hashtable;
