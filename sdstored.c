@@ -161,27 +161,26 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     write(2, "Failed Fork Manager to Child", 29);
                     _exit(-1);
                 case 0:
-                    int fd_i, fd_o;
+                    close(p1[0]);
+                    close(p2[0]);
+                    close(p2[1]);
+
+                    int fd_i;
                     if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
                         write(2, "Failed to open file in", 23);
                         _exit(-1);
                     }
-                    if((fd_o = open(p1[1], O_WRONLY)) == -1){
-                        write(2, "Failed to open pipe", 20);
-                        _exit(-1);
-                    }
-
+                    
                     if((dup2(fd_i, 0)) == -1){
                         write(2, "Failed to dup the input", 24);
                         _exit(-1);
                     }
 
-                    if((dup2(fd_o, 1)) == -1){
+                    if((dup2(p1[1], 1)) == -1){
                         write(2, "Failed to dup the output", 25);
                         _exit(-1);
                     }
                     close(fd_i);
-                    close(fd_o);
                     char buffer[strlen(pasta) + strlen(pedido->pedido[2]) + 1];
                     sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
                     int ret = execl(buffer, buffer);
@@ -195,6 +194,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                         _exit(-1);
                     }
             }
+
             for (i = 1; i< pedido->n_transfs - 1; i++) {
                 //fork->dups alternantes (i%2)->exec
             }
