@@ -23,11 +23,22 @@ void initHT(HT *h, int size) {
     }
 }
 
+int plusOneHT(HT *h, char key[]) {
 
+    int x;
+    int p = readHT(h, key, &x);
+    if(p != -1) {
+        (h->tbl)[p].value++;
+    }
+    return p;
+}
+
+/*
 int freeHT(HT *h, int k) {
     
-    return freeHT_sol(h, k);
+    return 
 }
+*/
 
 int isprime(int p){
     int i , r = 0;
