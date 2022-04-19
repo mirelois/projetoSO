@@ -76,10 +76,25 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 char buffer[strlen(pasta) + strlen(pedido->pedido[4]) + 1];
                 //responsabilidade do manager abrir e fichar os fds -> não sobrecarregar os fd's do server
                 int ret, fd_i, fd_o;
-                fd_i = open(pedido->pedido[2], O_RDONLY);
-                fd_o = open(pedido->pedido[3], O_CREAT | O_TRUNC | O_WRONLY, 0666); //pôr if's à volta dos opens
-                dup2(fd_i, 0);
-                dup2(fd_o, 1); //pôr if's à volta dos dups
+                if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
+                    perror("Failed to open file in");
+                    _exit(-1);
+                }
+
+                if((fd_o = open(pedido->pedido[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+                    perror("Failed to open file out");
+                    _exit(-1);
+                } //pôr if's à volta dos opens (já pus -- carlos)
+
+                if((dup2(fd_i, 0)) == -1){
+                    perror("Failed to dup the input");
+                    _exit(-1);
+                }
+
+                if((dup2(fd_o, 1)) == -1){
+                    perror("Failed to dup the output");
+                    _exit(-1);
+                } //pôr if's à volta dos dups (já pus -- carlos)
                 close(fd_i);
                 close(fd_o);
                 sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
