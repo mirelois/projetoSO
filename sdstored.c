@@ -73,16 +73,16 @@ int executaPedido(Pedido *pedido, char *pasta) {
             switch (fork())
             {
             case 0:
-                char buffer[strlen(pasta) + strlen(transfs[0]) + 1];
+                char buffer[strlen(pasta) + strlen(pedido->pedido[4]) + 1];
                 //responsabilidade do manager abrir e fichar os fds -> não sobrecarregar os fd's do server
                 int ret, fd_i, fd_o;
-                fd_i = open(pedido->file_in, O_RDONLY);
-                fd_o = open(pedido->file_out, O_CREAT | O_TRUNC | O_WRONLY, 0666); //pôr if's à volta dos opens
+                fd_i = open(pedido->pedido[2], O_RDONLY);
+                fd_o = open(pedido->pedido[3], O_CREAT | O_TRUNC | O_WRONLY, 0666); //pôr if's à volta dos opens
                 dup2(fd_i, 0);
                 dup2(fd_o, 1); //pôr if's à volta dos dups
                 close(fd_i);
                 close(fd_o);
-                sprintf(buffer, "%s/%s", pasta, transfs[0]);
+                sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
                 ret = execl(buffer, buffer);
                 perror("Failed Exec Manager Child");
                 _exit(ret);
@@ -111,6 +111,26 @@ int executaPedido(Pedido *pedido, char *pasta) {
             }
             int i;
             //0 fork->dups especiais de in->exec
+            switch(fork()){
+                case -1:
+                    perror("Failed Fork Manager to Child");
+                    _exit(-1);
+                case 0:
+                    int fd_i;
+                    if((fd_i = open(pedido->file_in, O_RDONLY)) == -1){
+                        perror("Failed to open file in");
+                        _exit(-1);
+                    }
+                    dup2(fd_i, 0);
+                    char buffer[strlen(pasta) + strlen(transfs[0]) + 1];
+                default:
+                    int status;
+                    wait(&status);
+                    if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                        perror("Failed Exec or Transf");
+                        _exit(-1);
+                    }
+            }
             for (i = 1; i< pedido->n_transfs - 1; i++) {
                 //fork->dups alternantes (i%2)->exec
             }
