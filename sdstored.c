@@ -96,7 +96,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
     int manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
-        perror("Failed Fork to Manager");
+        write(2,"Failed Fork to Manager", 23);
     } else if (manager == 0) {
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
         if (pedido->n_transfs == 1) {
@@ -107,12 +107,12 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 //responsabilidade do manager abrir e fichar os fds -> não sobrecarregar os fd's do server
                 int ret, fd_i, fd_o;
                 if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
-                    perror("Failed to open file in");
+                    write(2,"Failed to open file in", 23);
                     _exit(-1);
                 }
 
                 if((fd_o = open(pedido->pedido[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-                    perror("Failed to open file out");
+                    write(2, "Failed to open file out", 24);
                     _exit(-1);
                 } //pôr if's à volta dos opens (já pus -- carlos)
 
@@ -156,18 +156,37 @@ int executaPedido(Pedido *pedido, char *pasta) {
             }
             int i;
             //0 fork->dups especiais de in->exec
-            switch(fork()){
+            switch(fork()){ // Primeiro fork -> dup(..., 0) -> exec
                 case -1:
                     perror("Failed Fork Manager to Child");
                     _exit(-1);
                 case 0:
-                    int fd_i;
-                    if((fd_i = open(pedido->file_in, O_RDONLY)) == -1){
+                    int fd_i, fd_o;
+                    if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
                         perror("Failed to open file in");
                         _exit(-1);
                     }
-                    dup2(fd_i, 0);
-                    char buffer[strlen(pasta) + strlen(transfs[0]) + 1];
+                    if((fd_o = open(p1[1], O_WRONLY)) == -1){
+                        perror("Failed to open pipe");
+                        _exit(-1);
+                    }
+
+                    if((dup2(fd_i, 0)) == -1){
+                        perror("Failed to dup the input");
+                        _exit(-1);
+                    }
+
+                    if((dup2(fd_o, 1)) == -1){
+                        perror("Failed to dup the output");
+                        _exit(-1);
+                    }
+                    close(fd_i);
+                    close(fd_o);
+                    char buffer[strlen(pasta) + strlen(pedido->pedido[2]) + 1];
+                    sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
+                    int ret = execl(buffer, buffer);
+                    perror("Failed Exec Manager Child");
+                    _exit(ret);
                 default:
                     int status;
                     wait(&status);
