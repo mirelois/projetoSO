@@ -3,6 +3,27 @@
 #include "includes.h"
 #include "hashtable.h"
 
+char *pedidoToString(int n, char *array[], char *dest) {
+    char *sep = " ";
+    int i,c,s;
+    for (i = 0, c = 0, s = -1; i<n; i++, s++) {
+        c += strlen(array[i]);
+    }
+    dest = malloc(c+s+1);
+    char *target = dest;
+    *target = '\0';
+    for(i = 0; i<n; i++) {
+        if (i > 0) {
+            strcat(target, sep);
+            target++;
+        }
+        strcat(target, array[i]);
+        target += strlen(array[i]);
+    }
+    
+    return dest;
+}
+
 int readConfigNew(int fd, HT *hash_table) {
     initHT(hash_table, DICT_SIZE);
     int bytes_read, i = 0, word_size;
