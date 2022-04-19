@@ -25,6 +25,7 @@ int main(int argc, char const *argv[])
         //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome 
         //open pipe com nome
 
+        //escrever primeiro um int que é o n_transfs
         //como escrever o que recebeu?
             //literalmente só escrever no pipe...oq?
                 //array argv pimba para o pipe (de uma vez?)
