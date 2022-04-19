@@ -3,8 +3,24 @@
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
-int main(int argc, char const *argv[])
-{
+Pedido *createPedido(char *string) {
+    Pedido *r = malloc(sizeof(Pedido));
+    HT *h = malloc(sizeof(HT));
+    //criar um string array e preencher com as transformações por ordem
+    //pôr o n_transfs
+    //criar a hashtable
+    int r, n;
+    initHT(h, DICT_SIZE);
+    r->pedido = malloc();
+    for(r = 0, n = -3; string[r] != '\0'; r++, n++) {
+        //temos de ver os espaços, ir adicionando ao HT
+        //ht ter uma função que adiciona um ao valor dada uma key ou 1 se não existir
+    }
+    r->n_transfs = n;
+    return r;
+}
+
+int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
     int fdConfig;
@@ -22,7 +38,21 @@ int main(int argc, char const *argv[])
     //parse desse ficheiro .config: readln c/ sequencial até ' '
 
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
+    char buffer[MAX_BUFF];
+    //loop de read do pipe com nome para buffer
+    char first[10];
+    int i;
+    for (i = 0; buffer[i] != '\0' || buffer[i] != ' '; i++) {
+        first[i] = buffer[i];
+    }
+    first[i] = '\0';
+    if (strcmp(first, "status") == 0) {
 
+    } else if (strcmp(first, "proc-file") == 0) {
+        Pedido *pedido = createPedido(buffer+i); //o stringToPedido faz malloc ao array do pedido (pedido->pedido)
+    } else {
+        //erro de input
+    }
     //não esquecer de fazer o status
         //tem diferente input
         //apenas imprime o que está a ser processado (não o que está à espera)

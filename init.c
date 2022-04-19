@@ -1,9 +1,8 @@
-#define MAX_BUFF 1024
-#define DICT_SIZE 13 //possivel ter que mudar
+#include "init.h"
 #include "includes.h"
 #include "hashtable.h"
 
-char *pedidoToString(int n, char *array[], char *dest) {
+char *strArrayToString(int n, char *array[], char *dest) {
     char *sep = " ";
     int i,c,s;
     for (i = 0, c = 0, s = -1; i<n; i++, s++) {
@@ -20,12 +19,11 @@ char *pedidoToString(int n, char *array[], char *dest) {
         strcat(target, array[i]);
         target += strlen(array[i]);
     }
-    
     return dest;
 }
 
 int readConfigNew(int fd, HT *hash_table) {
-    initHT(hash_table, DICT_SIZE);
+    initHT(hash_table, INIT_DICT_SIZE);
     int bytes_read, i = 0, word_size;
     char buff[MAX_BUFF], dict_key[20], dict_value[5];
     bytes_read = read(fd, buff, MAX_BUFF);
@@ -72,7 +70,7 @@ int readConfigNew(int fd, HT *hash_table) {
 
 ssize_t readConfig(int fd, HT *hash_table) {
 
-    initHT(hash_table, DICT_SIZE);
+    initHT(hash_table, INIT_DICT_SIZE);
 
     int bytes_read;
     char buff[MAX_BUFF];
