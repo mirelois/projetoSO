@@ -193,6 +193,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                         write(2, "Failed Exec or Transf", 22);
                         _exit(-1);
                     }
+                    //o default não termina porque o pai a seguir vai fazer coisas
             }
 
             for (i = 1; i< pedido->n_transfs - 1; i++) {
@@ -222,5 +223,6 @@ int executaPedido(Pedido *pedido, char *pasta) {
         //não fazer nada de jeito ou um wait não bloqueante
         //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
         //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
+        //o manager também pode logo mandar o aviso ao cliente de alguma maneira
     }
 }
