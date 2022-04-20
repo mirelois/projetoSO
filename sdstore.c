@@ -20,6 +20,10 @@ int main(int argc, char const *argv[])
         //do status, pedir ao servidor o status das tasks em execução e dos limites
         //o server que imprima as suas cenas, I'm done here.
     } else if (argc >= 2 && strcmp(argv[1], "proc-file") == 0) {
+        int i = itoa(argv[2]);
+        if (i < 1 || i > 5) {
+            write(2, "Error parsing priority.", 24);
+        }
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
         //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome???
@@ -31,14 +35,13 @@ int main(int argc, char const *argv[])
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
         char *string;
-        string = strArrayToString(argc-1, argv+1, string);
+        strArrayToString(argc-1, argv+1, &string); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
         
         //vai ler e escrever 3 vezes
         char buffer[50];
         int bytes_read;
-        int i;
         for (i = 0; i<3;i++) {
             //read pipe com nome NÃO LÊ NADA QUE ISTO DÁ ASNEIRA
             write(1, buffer, bytes_read);

@@ -1,23 +1,60 @@
 #include "sdstored.h"
 
+#define StringToBuffer(r, string, buffer) \
+    for (w = 0; string[r] != '\0' && string[r] != ' '; w++, r++) {\
+       buffer[w] = string[r];\
+    }\
+
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
-Pedido *createPedido(char *string) {
-    Pedido *r = malloc(sizeof(Pedido));
+int createPedido(char *string, Pedido **dest, Pedido *maxs) {
+    *dest = malloc(sizeof(Pedido));
     HT *h = malloc(sizeof(HT));
     //criar um string array e preencher com as transformações por ordem
     //pôr o n_transfs
     //criar a hashtable
-    int r, n;
     initHT(h, DICT_SIZE);
-    r->pedido = malloc();
-    for(r = 0, n = -3; string[r] != '\0'; r++, n++) {
-        //temos de ver os espaços, ir adicionando ao HT
-        //ht ter uma função que adiciona um ao valor dada uma key ou 1 se não existir
+    //(*dest)->transfs = malloc();
+    char buffer[32];
+    //supor que tem a prioridade, in e out
+
+    int r = 0, n = -3, w = 0;
+    while(string[r] != '\0' && n < 0) {
+        
+        if(string[r] == ' ') {
+            //escrever o buffer para os transfs
+            w = 0;
+            n++;
+        } else {
+            buffer[w++] = string[r];
+        }
+        r++;
     }
-    r->n_transfs = n;
-    return r;
+    if (n < 0) {
+        write(2, "Problem finding input/output files.", 36);
+        return -1;
+    }
+    for(; string[r] != '\0'; r++, n++) {
+        StringToBuffer(r, string, buffer)
+        //escrever o buffer para os transfs
+
+        //temos de ver os espaços, ir adicionando ao HT
+        int max, curr;
+        if (readHT(maxs, buffer, &max) == -1) {
+            write(2, "Transformation not in config.", 31);
+            return -1
+        }
+        if ((curr = plusOneHT(h, buffer)) == -1) {
+            writeHT(h, buffer, 1);
+            curr = 1;
+        }
+        if (curr > max) {
+            //rejeitar o pedido
+        }
+    }
+    (*dest)->n_transfs = n;
+    return 0;
 }
 
 int main(int argc, char const *argv[]) {
@@ -33,23 +70,25 @@ int main(int argc, char const *argv[]) {
     char pasta[] = argv[2];
     //lembrar da pasta em algum sítio para os executáveis
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
-
+    HT *maxs;
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
 
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
-    char buffer[MAX_BUFF];
+    char pipeRead[MAX_BUFF];
     //loop de read do pipe com nome para buffer
-    char first[10];
-    int i;
-    for (i = 0; buffer[i] != '\0' || buffer[i] != ' '; i++) {
-        first[i] = buffer[i];
+    char pipeParse[32];
+    int i, w;
+    for (i = 0, w = 0; pipeRead[i] != '\0' && pipeRead[i] != ' '; i++, w++) {
+        pipeParse[w] = pipeRead[i];
     }
-    first[i] = '\0';
-    if (strcmp(first, "status") == 0) {
-
-    } else if (strcmp(first, "proc-file") == 0) {
-        Pedido *pedido = createPedido(buffer+i); //o stringToPedido faz malloc ao array do pedido (pedido->pedido)
+    pipeParse[i] = '\0';
+    if (strcmp(pipeParse, "status") == 0) {
+        
+    } else if (strcmp(pipeParse, "proc-file") == 0) {
+        Pedido *pedido;
+        int r;
+        r = createPedido(pipeRead+i, &pedido, maxs); //o stringToPedido faz malloc ao array do pedido (pedido->pedido)
     } else {
         //erro de input
     }
@@ -103,15 +142,16 @@ int executaPedido(Pedido *pedido, char *pasta) {
             switch (fork())
             {
             case 0:
-                char buffer[strlen(pasta) + strlen(pedido->pedido[4]) + 1];
+                char buffer[strlen(pasta) + strlen(pedido->transfs[4]) + 1];
                 //responsabilidade do manager abrir e fichar os fds -> não sobrecarregar os fd's do server
+                //só faz sentido fazer open no manager do que no cliente porque os ficheiros podem estar noutro sítio
                 int ret, fd_i, fd_o;
-                if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
+                if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
                     write(2,"Failed to open file in", 23);
                     _exit(-1);
                 }
 
-                if((fd_o = open(pedido->pedido[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+                if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
                     write(2, "Failed to open file out", 24);
                     _exit(-1);
                 } //pôr if's à volta dos opens (já pus -- carlos)
@@ -127,7 +167,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 } //pôr if's à volta dos dups (já pus -- carlos)
                 close(fd_i);
                 close(fd_o);
-                sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
+                sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                 ret = execl(buffer, buffer);
                 write(2, "Failed Exec Manager Child", 26);
                 _exit(ret);
@@ -162,7 +202,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     _exit(-1);
                 case 0:
                     int fd_i, fd_o;
-                    if((fd_i = open(pedido->pedido[2], O_RDONLY)) == -1){
+                    if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
                         write(2, "Failed to open file in", 23);
                         _exit(-1);
                     }
@@ -182,8 +222,8 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     }
                     close(fd_i);
                     close(fd_o);
-                    char buffer[strlen(pasta) + strlen(pedido->pedido[2]) + 1];
-                    sprintf(buffer, "%s/%s", pasta, pedido->pedido[4]);
+                    char buffer[strlen(pasta) + strlen(pedido->transfs[2]) + 1];
+                    sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     int ret = execl(buffer, buffer);
                     write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
