@@ -4,6 +4,7 @@
     for (w = 0; string[r] != '\0' && string[r] != ' '; w++, r++) {\
        buffer[w] = string[r];\
     }\
+    buffer[w] = '\0';\
 
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
@@ -15,8 +16,8 @@ int createPedido(char *string, Pedido **dest, Pedido *maxs) {
     //(*dest)->transfs = malloc();
     char buffer[32];
     //supor que tem a prioridade, in e out
-    int r = 0, n = -3, w = 0;
-    for(r = 0, n = -3, w = 0; string[r] != '\0' && n < 0; n++, r++) {
+    int r = 0, n = -3, w;
+    for(r = 0, n = -3; string[r] != '\0' && n < 0; n++, r++) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
     }
@@ -67,26 +68,24 @@ int main(int argc, char const *argv[]) {
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     char pipeRead[MAX_BUFF];
     //loop de read do pipe com nome para buffer
+
     char pipeParse[32];
-    int i, w;
-    for (i = 0, w = 0; pipeRead[i] != '\0' && pipeRead[i] != ' '; i++, w++) {
-        pipeParse[w] = pipeRead[i];
-    }
-    pipeParse[i] = '\0';
+    int i = 0, w;
+    StringToBuffer(i, pipeRead, pipeParse)
     if (strcmp(pipeParse, "status") == 0) {
-        
-    } else if (strcmp(pipeParse, "proc-file") == 0) {
-        Pedido *pedido;
-        int r;
-        r = createPedido(pipeRead+i, &pedido, maxs); //o stringToPedido faz malloc ao array do pedido (pedido->pedido)
-    } else {
-        //erro de input
-    }
-    //não esquecer de fazer o status
+        //não esquecer de fazer o status
         //tem diferente input
         //apenas imprime o que está a ser processado (não o que está à espera)
         //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
             //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
+    } else if (strcmp(pipeParse, "proc-file") == 0) {
+        Pedido *pedido;
+        int r;
+        r = createPedido(pipeRead+i, &pedido, maxs);
+        //tentar executar logo, se não colocar à espera
+    } else {
+        //erro de input
+    }
 
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final
     //1ª coisa que ele faz:
