@@ -1,8 +1,7 @@
 #include "init.h"
 #include "includes.h"
-#include "hashtable.h"
 
-int strArrayToString(int n, char *array[], char **dest) {
+int strArrayToString(int n, const char *array[], char **dest) {
     char *sep = " ";
     int i,c,s;
     for (i = 0, c = 0, s = -1; i<n; i++, s++) {

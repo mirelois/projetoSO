@@ -11,27 +11,17 @@
 int createPedido(char *string, Pedido **dest, Pedido *maxs) {
     *dest = malloc(sizeof(Pedido));
     HT *h = malloc(sizeof(HT));
-    //criar um string array e preencher com as transformações por ordem
-    //pôr o n_transfs
-    //criar a hashtable
     initHT(h, DICT_SIZE);
     //(*dest)->transfs = malloc();
     char buffer[32];
     //supor que tem a prioridade, in e out
-
     int r = 0, n = -3, w = 0;
-    while(string[r] != '\0' && n < 0) {
-        
-        if(string[r] == ' ') {
-            //escrever o buffer para os transfs
-            w = 0;
-            n++;
-        } else {
-            buffer[w++] = string[r];
-        }
-        r++;
+    for(r = 0, n = -3, w = 0; string[r] != '\0' && n < 0; n++, r++) {
+        StringToBuffer(r, string, buffer)
+        //escrever o buffer para os transfs
     }
     if (n < 0) {
+        //já sabemos que tem prioridade porque o cliente já viu
         write(2, "Problem finding input/output files.", 36);
         return -1;
     }
@@ -45,7 +35,7 @@ int createPedido(char *string, Pedido **dest, Pedido *maxs) {
             write(2, "Transformation not in config.", 31);
             return -1
         }
-        if ((curr = plusOneHT(h, buffer)) == -1) {
+        if (plusOneHT(h, buffer, &curr) == -1) {
             writeHT(h, buffer, 1);
             curr = 1;
         }

@@ -20,9 +20,14 @@ int main(int argc, char const *argv[])
         //do status, pedir ao servidor o status das tasks em execução e dos limites
         //o server que imprima as suas cenas, I'm done here.
     } else if (argc >= 2 && strcmp(argv[1], "proc-file") == 0) {
+        //coisas muito manhosas mesmo
         int i = itoa(argv[2]);
-        if (i < 1 || i > 5) {
-            write(2, "Error parsing priority.", 24);
+        int flag = 0;
+        if (i == -1) {
+            argv[1] = "1";
+            flag = 1;
+        } else if (i > 5 || i < 1) {
+            argv[2] = "1";
         }
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
@@ -35,7 +40,7 @@ int main(int argc, char const *argv[])
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
         char *string;
-        strArrayToString(argc-1, argv+1, &string); //testar erro?
+        strArrayToString(argc-1+flag, argv+1-flag, &string); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
         
