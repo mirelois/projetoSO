@@ -128,6 +128,7 @@ int main(int argc, char const *argv[]) {
         //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
             //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
     } else if (strcmp(pipeParse, "proc-file") == 0) {
+        //Leitura do pedido
         Pedido *pedido;
         if ((w = createPedido(pipeRead+i, &pedido, &maxs)) == -1) {
             //erro de execução
@@ -137,6 +138,7 @@ int main(int argc, char const *argv[]) {
             deepFree(pedido);
             //escrever de volta ao cliente que deu asneira
         }
+        
         //tentar executar logo?, se não colocar à espera
     } else {
         //erro de input do cliente, rejeitar o pedido

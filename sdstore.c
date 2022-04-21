@@ -22,12 +22,12 @@ int main(int argc, char const *argv[])
     } else if (argc >= 2 && strcmp(argv[1], "proc-file") == 0) {
         //coisas muito manhosas mesmo
         int i = atoi(argv[2]);
-        int flag = 0;
         if (i == -1) {
             argv[1] = "1";
-            flag = 1;
+            i = 1;
         } else if (i > 5 || i < 1) {
             argv[2] = "1";
+            i = 0;
         }
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
         char *string;
-        strArrayToString(argc-1+flag, argv+1-flag, &string, 1); //testar erro?
+        strArrayToString(argc-1+i, argv+1-i, &string, 1); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
         
