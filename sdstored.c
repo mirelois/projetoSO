@@ -5,49 +5,95 @@
        buffer[w] = string[r];\
     }\
     buffer[w] = '\0';\
+    r++;\
 
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
+/**
+ * @brief Adicionar uma transformação ao dicionário de um Pedido
+ * 
+ * Assume que os máximos já estão definidos.
+ * Verifica se a transformação existe no servidor, se não avisa que o pedido deve ser rejeitado
+ * 
+ * @param transf Transformação a adicionar
+ * @param h Dicionário onde adicionar
+ * @param maxs Dicionário dos máximos
+ * @return int Valor de erro se o pedido for válido ou rejeitado
+ */
+int addTransfHT(char *transf, HT *h, HT *maxs) {
+    int max, curr;
+    if (readHT(maxs, transf, &max) == -1) {
+        write(2, "Transformation not in config.", 31);
+        return 1;
+    }
+    if (plusOneHT(h, transf, &curr) == -1) {
+        writeHT(h, transf, 1);
+        curr = 1;
+    }
+    if (curr > max) {
+        //rejeitar o pedido
+        return -1;
+    }
+    return 0;
+}
+
+void deepFree(Pedido *dest) {
+    if (dest->hashtable)
+        freeHT(dest->hashtable);
+    if (dest->transfs) {
+        int i;
+        for(i = 0; i<dest->n_transfs+3; i++) {
+            free(dest->transfs[i]);
+        }
+        free(dest->transfs);
+    }
+    free(dest);
+}
+
 int createPedido(char *string, Pedido **dest, HT *maxs) {
     *dest = malloc(sizeof(Pedido));
-    HT *h = malloc(sizeof(HT));
-    initHT(h, DICT_SIZE);
     char buffer[32];
     //supor que tem a prioridade, in e out
     int r = 0, w, n, i = 0;
     StringToBuffer(r, string, buffer)
+    //primeira parte da string é o número de argumentos
     n = atoi(buffer);
     (*dest)->transfs = malloc(n*sizeof(char*));
-    for(; string[r] != '\0'; r++, n--) {
+    for(; string[r] != '\0' && i<3;) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
-        (*dest)->transfs[i++] = strndup(buffer, w);
-    }
-    if (n < 0) {
-        //já sabemos que tem prioridade porque o cliente já viu
-        write(2, "Problem finding input/output files.", 36);
-        return -1;
-    }
-    for(; string[r] != '\0'; r++) {
-        StringToBuffer(r, string, buffer)
-        //escrever o buffer para os transfs
-        (*dest)->transfs[i++] = strndup(buffer, w);
-        //temos de ver os espaços, ir adicionando ao HT
-        int max, curr;
-        if (readHT(maxs, buffer, &max) == -1) {
-            write(2, "Transformation not in config.", 31);
+        if(((*dest)->transfs[i++] = strdup(buffer)) == NULL) {
+            write(2, "Problem with memory.", 21);
             return -1;
         }
-        if (plusOneHT(h, buffer, &curr) == -1) {
-            writeHT(h, buffer, 1);
-            curr = 1;
+    }
+    if (i < 3) {
+        //pedido rejeitado
+        write(2, "Problem finding input/output files.", 36);
+        return 1;
+    }
+
+    HT *h = malloc(sizeof(HT));
+    (*dest)->hashtable = h;
+    initHT(h, 13);
+    for(; string[r] != '\0' && i < n; r++) {
+        StringToBuffer(r, string, buffer)
+        //escrever o buffer para os transfs
+        if(((*dest)->transfs[i++] = strdup(buffer)) == NULL) {
+            write(2, "Problem with memory.", 21);
+            return -1;
         }
-        if (curr > max) {
-            //rejeitar o pedido
+        //temos de ver os espaços, ir adicionando ao HT
+        if ((w = addTransfHT(buffer, h, maxs)) == 1) {
+            //pedido rejeitado
+            return 1;
+        } else if (w == -1) {
+            //erro de execução
+            return -1;
         }
     }
-    (*dest)->n_transfs = n;
+    (*dest)->n_transfs = n-3;
     return 0;
 }
 
@@ -64,7 +110,7 @@ int main(int argc, char const *argv[]) {
     char pasta[] = argv[2];
     //lembrar da pasta em algum sítio para os executáveis
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
-    HT *maxs;
+    HT maxs;
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
 
@@ -83,11 +129,17 @@ int main(int argc, char const *argv[]) {
             //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
     } else if (strcmp(pipeParse, "proc-file") == 0) {
         Pedido *pedido;
-        int r;
-        r = createPedido(pipeRead+i, &pedido, maxs);
-        //tentar executar logo, se não colocar à espera
+        if ((w = createPedido(pipeRead+i, &pedido, &maxs)) == -1) {
+            //erro de execução
+            return -1;
+        } else if (w == 1) {
+            //pedido rejeitado
+            deepFree(pedido);
+            //escrever de volta ao cliente que deu asneira
+        }
+        //tentar executar logo?, se não colocar à espera
     } else {
-        //erro de input
+        //erro de input do cliente, rejeitar o pedido
     }
 
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final
