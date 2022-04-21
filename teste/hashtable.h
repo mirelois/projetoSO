@@ -1,3 +1,5 @@
+#define DICT_SIZE 13
+#define MAX_CHARGE 0.75
 #define FREE(p) strcmp((h->tbl)[p].key, EMPTY) == 0 || strcmp((h->tbl)[p].key, DELETED) == 0
 
 #define EMPTY       "-"
@@ -23,6 +25,8 @@ int hash(char key[], int size);
 // ENSURES array is allocated and initialized with key EMPTY everywhere
 void initHT (HT *h, int size);
 
+//adds one to value with key = key
+int plusOneHT(HT *h, char key[], int* value);
 
 // REQUIRES key does not occur in table h (no defensive code)
 // (alternatives would be to check defensively, OR to use an update semantics whenever key occurs already)

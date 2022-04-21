@@ -1,15 +1,27 @@
 #include "init.h"
 #include "includes.h"
 
-int strArrayToString(int n, const char *array[], char **dest) {
-    char *sep = " ";
+int strArrayToString(int n, char *array[], char **dest, int mode) {
+    char *sep = " ", buffer[33];
     int i,c,s;
+    itoa(n, buffer, 10);
+    
     for (i = 0, c = 0, s = -1; i<n; i++, s++) {
         c += strlen(array[i]);
+    }
+    if (mode == 1) {
+        c += strlen(buffer);
+        s++;
     }
     (*dest) = malloc(c+s+1);
     char *target = (*dest);
     *target = '\0';
+    if (mode == 1) {
+        strcat(target, buffer);
+        target += strlen(buffer);
+        strcat(target, sep);
+        target++;
+    }
     for(i = 0; i<n; i++) {
         if (i > 0) {
             strcat(target, sep);

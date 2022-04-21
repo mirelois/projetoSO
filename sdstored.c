@@ -9,32 +9,35 @@
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
-int createPedido(char *string, Pedido **dest, Pedido *maxs) {
+int createPedido(char *string, Pedido **dest, HT *maxs) {
     *dest = malloc(sizeof(Pedido));
     HT *h = malloc(sizeof(HT));
     initHT(h, DICT_SIZE);
-    //(*dest)->transfs = malloc();
     char buffer[32];
     //supor que tem a prioridade, in e out
-    int r = 0, n = -3, w;
-    for(r = 0, n = -3; string[r] != '\0' && n < 0; n++, r++) {
+    int r = 0, w, n, i = 0;
+    StringToBuffer(r, string, buffer)
+    n = atoi(buffer);
+    (*dest)->transfs = malloc(n*sizeof(char*));
+    for(; string[r] != '\0'; r++, n--) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
+        (*dest)->transfs[i++] = strndup(buffer, w);
     }
     if (n < 0) {
         //já sabemos que tem prioridade porque o cliente já viu
         write(2, "Problem finding input/output files.", 36);
         return -1;
     }
-    for(; string[r] != '\0'; r++, n++) {
+    for(; string[r] != '\0'; r++) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
-
+        (*dest)->transfs[i++] = strndup(buffer, w);
         //temos de ver os espaços, ir adicionando ao HT
         int max, curr;
         if (readHT(maxs, buffer, &max) == -1) {
             write(2, "Transformation not in config.", 31);
-            return -1
+            return -1;
         }
         if (plusOneHT(h, buffer, &curr) == -1) {
             writeHT(h, buffer, 1);

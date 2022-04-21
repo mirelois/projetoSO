@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
         //o server que imprima as suas cenas, I'm done here.
     } else if (argc >= 2 && strcmp(argv[1], "proc-file") == 0) {
         //coisas muito manhosas mesmo
-        int i = itoa(argv[2]);
+        int i = atoi(argv[2]);
         int flag = 0;
         if (i == -1) {
             argv[1] = "1";
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
         char *string;
-        strArrayToString(argc-1+flag, argv+1-flag, &string); //testar erro?
+        strArrayToString(argc-1+flag, argv+1-flag, &string, 1); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
         

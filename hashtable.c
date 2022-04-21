@@ -23,13 +23,13 @@ void initHT(HT *h, int size) {
     }
 }
 
-int plusOneHT(HT *h, char key[], int *val) {
+int plusOneHT(HT *h, char key[], int *value) {
 
     int x;
     int p = readHT(h, key, &x);
     if(p != -1) {
         (h->tbl)[p].value++;
-        *val = x+1;
+        *value = x+1;
     }
     return p;
 }
@@ -92,6 +92,7 @@ int writeHT (HT *h, char key[], int value) {
 
         free(new_h);//maybe not enough
         
+        return 0;
     }
 
 }
