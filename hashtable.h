@@ -1,4 +1,4 @@
-#define DICT_SIZE 13
+#define INIT_DICT_SIZE 13
 #define MAX_CHARGE 0.75
 #define FREE(p) strcmp((h->tbl)[p].key, EMPTY) == 0 || strcmp((h->tbl)[p].key, DELETED) == 0
 
