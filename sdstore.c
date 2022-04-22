@@ -30,26 +30,25 @@ int main(int argc, char const *argv[])
             //literalmente só escrever no pipe...oq?
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
-        char *string, *buffer, *prio;
-        int n;
-        n = strArrayToString(argc-1, argv+1, &string, 1); //testar erro?
-        buffer = malloc(n+13);
+        char *string;
+        int i, n;
         n = atoi(argv[2]);
         if (n < 1 || n > 5) {
-            n = 1;
+            write(2, "Missing priority.");
+            return -1;
         }
-        itoa(n,prio,10);
-        sprintf(buffer, "%s %s %s", "proc-file", prio, string);
+        n = strArrayToString(argc-1, argv+1, &string, 1); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
         
         //vai ler e escrever 3 vezes
-        char buffer[50];
         int bytes_read;
-        for (i = 0; i<3;i++) {
+        char buffer[32];
+        for (i = 0; i<2;i++) {
             //read pipe com nome NÃO LÊ NADA QUE ISTO DÁ ASNEIRA
             write(1, buffer, bytes_read);
         }
+        //read pipe da conclusão
         
     }
     return 0;

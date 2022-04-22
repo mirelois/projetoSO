@@ -9,8 +9,9 @@
 
 typedef struct pedido {
     //guardar strings para não sobrecarregar fd's do servidor
-    char **transfs;
+    int id;
     int n_transfs;
     //apontador para hashtable para guardar os valores dos pedidos
     HT *hashtable;
+    char **transfs;
 }Pedido;

@@ -48,6 +48,7 @@ void deepFree(Pedido *dest) {
         }
         free(dest->transfs);
     }
+    free(dest->string);
     free(dest);
 }
 
@@ -60,26 +61,21 @@ int createPedido(char *string, Pedido **dest, HT *maxs) {
     //primeira parte da string é o número de argumentos
     n = atoi(buffer);
     (*dest)->transfs = malloc(n*sizeof(char*));
-    for(; string[r] != '\0' && i<3;) {
+    for(; string[r] != '\0' && i<4; i++) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
-        if(((*dest)->transfs[i++] = strdup(buffer)) == NULL) {
+        if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
             write(2, "Problem with memory.", 21);
             return -1;
         }
     }
-    if (i < 3) {
-        //pedido rejeitado
-        write(2, "Problem finding input/output files.", 36);
-        return 1;
-    }
 
     (*dest)->hashtable = malloc(sizeof(HT));
     initHT(h, 13);
-    for(; string[r] != '\0' && i < n; r++) {
+    for(; string[r] != '\0' && i < n; r++, i++) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
-        if(((*dest)->transfs[i++] = strdup(buffer)) == NULL) {
+        if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
             write(2, "Problem with memory.", 21);
             return -1;
         }
@@ -92,7 +88,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs) {
             return -1;
         }
     }
-    (*dest)->n_transfs = n-3;
+    (*dest)->n_transfs = n-4;
     return 0;
 }
 
@@ -252,12 +248,13 @@ int executaPedido(Pedido *pedido, char *pasta) {
         //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
         //o manager também pode logo mandar o aviso ao cliente de alguma maneira
     }
+}
 
-    int main(int argc, char const *argv[]) {
+int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
     int fdConfig;
-    if (argc < 3 || (fdConfig = open(argv[1], O_RDONLY)) == -1) {
+    if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
         //como validar um path (pasta)?
         perror("Failed to execute server");
         return -1;
@@ -275,7 +272,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
     //loop de read do pipe com nome para buffer
 
     char pipeParse[32];
-    int i = 0, w;
+    int i = 0, w, n_pedido = 0;
     StringToBuffer(i, pipeRead, pipeParse)
     if (strcmp(pipeParse, "status") == 0) {
         //não esquecer de fazer o status
@@ -286,7 +283,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
     } else if (strcmp(pipeParse, "proc-file") == 0) {
         //Leitura do pedido
         Pedido *pedido;
-        if ((w = createPedido(pipeRead+i, &pedido, &maxs)) == -1) {
+        if ((w = createPedido(pipeRead, &pedido, &maxs)) == -1) {
             //erro de execução
             return -1;
         } else if (w == 1) {
@@ -327,6 +324,4 @@ int executaPedido(Pedido *pedido, char *pasta) {
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
     //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
     return 0;
-}
-
 }
