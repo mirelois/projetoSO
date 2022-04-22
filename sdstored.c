@@ -245,6 +245,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int p1[], int p2[]){
 }
 
 void realizaTransf(Pedido *pedido, char *pasta, int i, int p1[], int p2[]){
+    char *buffer=NULL;
     switch(fork()){ // Primeiro fork -> dup(..., 0) -> exec
         case -1:
             write(2, "Failed Fork Manager to Child", 29);
@@ -254,7 +255,7 @@ void realizaTransf(Pedido *pedido, char *pasta, int i, int p1[], int p2[]){
                 escolheEntradaSaida(pedido, i, p1, p2);
             else
                 escolheEntradaSaidaOneTransf(pedido);
-            char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
+            buffer = malloc(strlen(pasta) + strlen(pedido->transfs[i+4]) + 1);
             sprintf(buffer, "%s/%s", pasta, pedido->transfs[i+4]);
             int ret = execl(buffer, buffer);
             write(2, "Failed Exec Manager Child", 26);
