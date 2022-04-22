@@ -20,16 +20,6 @@ int main(int argc, char const *argv[])
         //do status, pedir ao servidor o status das tasks em execução e dos limites
         //o server que imprima as suas cenas, I'm done here.
     } else if (argc >= 4 && strcmp(argv[1], "proc-file") == 0) {
-        //coisas muito manhosas mesmo
-        int i = atoi(argv[2]);
-        if (i == 0) {
-            strncpy(argv[0], argv[1], 10);
-            strncpy(argv[1], "1", 2);
-            i = 1;
-        } else if (i > 5 || i < 1) {
-            strncpy(argv[2], "1", 2);
-            i = 0;
-        }
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
         //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome???
@@ -40,8 +30,16 @@ int main(int argc, char const *argv[])
             //literalmente só escrever no pipe...oq?
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
-        char *string;
-        strArrayToString(argc-1+i, argv+1-i, &string, 1); //testar erro?
+        char *string, *buffer, *prio;
+        int n;
+        n = strArrayToString(argc-1, argv+1, &string, 1); //testar erro?
+        buffer = malloc(n+13);
+        n = atoi(argv[2]);
+        if (n < 1 || n > 5) {
+            n = 1;
+        }
+        itoa(n,prio,10);
+        sprintf(buffer, "%s %s %s", "proc-file", prio, string);
         //write(pipe, string, strlen(string));
         free(string);
         

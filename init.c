@@ -30,7 +30,7 @@ int strArrayToString(int n, char *array[], char **dest, int mode) {
         strcat(target, array[i]);
         target += strlen(array[i]);
     }
-    return 0;
+    return c+s+1;
 }
 
 int readConfigNew(int fd, HT *hash_table) {
