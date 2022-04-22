@@ -23,10 +23,11 @@ int main(int argc, char const *argv[])
         //coisas muito manhosas mesmo
         int i = atoi(argv[2]);
         if (i == -1) {
-            argv[1] = "1";
+            strncpy(argv[0], argv[1], 9);
+            strncpy(argv[1], "1", 1);
             i = 1;
         } else if (i > 5 || i < 1) {
-            argv[2] = "1";
+            strncpy(argv[2], "1", 1);
             i = 0;
         }
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
