@@ -173,6 +173,103 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
+void escolheEntradaSaidaOneTransf(Pedido *pedido){
+    int fd_i, fd_o;
+    if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
+        write(2,"Failed to open file in", 23);
+        _exit(-1);
+    }
+    if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+        write(2, "Failed to open file out", 24);
+        _exit(-1);
+    } //pôr if's à volta dos opens (já pus -- carlos)
+    if((dup2(fd_i, 0)) == -1){
+        write(2, "Failed to dup the input", 24);
+        _exit(-1);
+    }
+    if((dup2(fd_o, 1)) == -1){
+        write(2, "Failed to dup the output", 25);
+        _exit(-1);
+    } //pôr if's à volta dos dups (já pus -- carlos)
+    close(fd_i);
+    close(fd_o);
+}
+
+void escolheEntradaSaida(Pedido *pedido, int i, int p1[], int p2[]){
+    int impar = i % 2;
+    if(i!=0){
+        close(p1[!impar]);
+        close(p2[impar]);
+        
+        if((impar ? dup2(p2[0], 0) : dup2(p1[0], 0)) == -1){
+            write(2, "Failed to dup the input", 24);
+            _exit(-1);
+        }
+    }else{
+        close(p1[0]);
+        close(p2[0]);
+        close(p2[1]);
+
+        int fd_i;
+        if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
+        write(2, "Failed to open file in", 23);
+            _exit(-1);
+        }
+                    
+        if((dup2(fd_i, 0)) == -1){
+            write(2, "Failed to dup the input", 24);
+            _exit(-1);
+        }
+        close(fd_i);
+    }
+
+    if(pedido->n_transfs != i){
+        if((impar ? dup2(p1[1], 1) : dup2(p2[1], 1)) == -1){
+                write(2, "Failed to dup the output", 25);
+                _exit(-1);
+            }
+    }else{
+            int fd_o;
+            if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+                write(2, "Failed to open file out", 24);
+                _exit(-1);
+            }
+            if((dup2(fd_o, 1)) == -1){
+                write(2, "Failed to dup the output", 25);
+                _exit(-1);
+            }
+            close(fd_o);
+            close(p2[1]);
+    }
+    
+}
+
+void realizaTransf(Pedido *pedido, char *pasta, int i, int p1[], int p2[]){
+    switch(fork()){ // Primeiro fork -> dup(..., 0) -> exec
+        case -1:
+            write(2, "Failed Fork Manager to Child", 29);
+            _exit(-1);
+        case 0:
+            if(p1 != NULL || p2 != NULL)
+                escolheEntradaSaida(pedido, i, p1, p2);
+            else
+                escolheEntradaSaidaOneTransf(pedido);
+            char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
+            sprintf(buffer, "%s/%s", pasta, pedido->transfs[i+4]);
+            int ret = execl(buffer, buffer);
+            write(2, "Failed Exec Manager Child", 26);
+            _exit(ret);
+        default:
+            int status;
+            wait(&status);
+            if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                write(2, "Failed Exec or Transf", 22);
+                _exit(-1);
+            }
+        }
+    
+}
+
 int executaPedido(Pedido *pedido, char *pasta) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
@@ -185,50 +282,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
     } else if (manager == 0) {
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
         if (pedido->n_transfs == 1) {
-            switch (fork())
-            {
-            case 0:
-                char buffer[strlen(pasta) + strlen(pedido->transfs[4]) + 1];
-                //responsabilidade do manager abrir e fichar os fds -> não sobrecarregar os fd's do server
-                //só faz sentido fazer open no manager do que no cliente porque os ficheiros podem estar noutro sítio
-                int ret, fd_i, fd_o;
-                if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
-                    write(2,"Failed to open file in", 23);
-                    _exit(-1);
-                }
-
-                if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-                    write(2, "Failed to open file out", 24);
-                    _exit(-1);
-                } //pôr if's à volta dos opens (já pus -- carlos)
-
-                if((dup2(fd_i, 0)) == -1){
-                    write(2, "Failed to dup the input", 24);
-                    _exit(-1);
-                }
-
-                if((dup2(fd_o, 1)) == -1){
-                    write(2, "Failed to dup the output", 25);
-                    _exit(-1);
-                } //pôr if's à volta dos dups (já pus -- carlos)
-                close(fd_i);
-                close(fd_o);
-                sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
-                ret = execl(buffer, buffer);
-                write(2, "Failed Exec Manager Child", 26);
-                _exit(ret);
-            case -1:
-                write(2, "Failed Fork Manager to Child", 29);
-                _exit(-1);
-            default:
-                int status;
-                wait(&status);
-                if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                    write(2, "Failed Exec or Transf", 22);
-                    _exit(-1);
-                }
-                _exit(0);
-            }
+            realizaTransf(pedido, pasta, 0, NULL, NULL);
         } else {
             int p1[2];
             int p2[2];
@@ -240,56 +294,16 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 write(2, "Failed pipe 2", 14);
                 _exit(-1);
             }
-            int i;
+
             //0 fork->dups especiais de in->exec
-            switch(fork()){ // Primeiro fork -> dup(..., 0) -> exec
-                case -1:
-                    write(2, "Failed Fork Manager to Child", 29);
-                    _exit(-1);
-                case 0:
-                    close(p1[0]);
-                    close(p2[0]);
-                    close(p2[1]);
-
-                    int fd_i;
-                    if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
-                        write(2, "Failed to open file in", 23);
-                        _exit(-1);
-                    }
-                    
-                    if((dup2(fd_i, 0)) == -1){
-                        write(2, "Failed to dup the input", 24);
-                        _exit(-1);
-                    }
-
-                    if((dup2(p1[1], 1)) == -1){
-                        write(2, "Failed to dup the output", 25);
-                        _exit(-1);
-                    }
-                    close(fd_i);
-                    char buffer[strlen(pasta) + strlen(pedido->transfs[2]) + 1];
-                    sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
-                    int ret = execl(buffer, buffer);
-                    write(2, "Failed Exec Manager Child", 26);
-                    _exit(ret);
-                default:
-                    int status;
-                    wait(&status);
-                    if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                        write(2, "Failed Exec or Transf", 22);
-                        _exit(-1);
-                    }
-                    //o default não termina porque o pai a seguir vai fazer coisas
-            }
-
-            for (i = 1; i< pedido->n_transfs - 1; i++) {
-                //fork->dups alternantes (i%2)->exec
+            realizaTransf(pedido, pasta, 0, p1, p2);
+            int i;
+            for (i = 1; i< pedido->n_transfs - 1; i++) { //fork->dups alternantes (i%2)->exec
+                realizaTransf(pedido, pasta, i, p1, p2);
             }
             //n_transf-1 fork->dup especial COM CONTA DO ALTERNANTE (i%2) de out->exec
-            for (i = 0; i < 2; i++) {
-                close(p1[i]);
-                close(p2[i]);
-            }
+            realizaTransf(pedido, pasta, i, p1, p2);
+
             close(p1[0]);
             close(p1[1]);
             close(p2[0]);
