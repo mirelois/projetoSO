@@ -74,8 +74,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs) {
         return 1;
     }
 
-    HT *h = malloc(sizeof(HT));
-    (*dest)->hashtable = h;
+    (*dest)->hashtable = malloc(sizeof(HT));
     initHT(h, 13);
     for(; string[r] != '\0' && i < n; r++) {
         StringToBuffer(r, string, buffer)
@@ -85,7 +84,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs) {
             return -1;
         }
         //temos de ver os espaços, ir adicionando ao HT
-        if ((w = addTransfHT(buffer, h, maxs)) == 1) {
+        if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
             //pedido rejeitado
             return 1;
         } else if (w == -1) {
@@ -198,10 +197,10 @@ void escolheEntradaSaidaOneTransf(Pedido *pedido){
 void escolheEntradaSaida(Pedido *pedido, int i, int p1[], int p2[]){
     int impar = i % 2;
     if(i!=0){
-        close(p1[!impar]);
-        close(p2[impar]);
+        close(p1[impar]);
+        close(p2[!impar]);
         
-        if((impar ? dup2(p2[0], 0) : dup2(p1[0], 0)) == -1){
+        if((impar ? dup2(p1[0], 0) : dup2(p2[0], 0)) == -1){
             write(2, "Failed to dup the input", 24);
             _exit(-1);
         }
@@ -223,8 +222,8 @@ void escolheEntradaSaida(Pedido *pedido, int i, int p1[], int p2[]){
         close(fd_i);
     }
 
-    if(pedido->n_transfs != i){
-        if((impar ? dup2(p1[1], 1) : dup2(p2[1], 1)) == -1){
+    if(pedido->n_transfs-1 != i){
+        if((impar ? dup2(p2[1], 1) : dup2(p1[1], 1)) == -1){
                 write(2, "Failed to dup the output", 25);
                 _exit(-1);
             }
@@ -239,7 +238,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int p1[], int p2[]){
                 _exit(-1);
             }
             close(fd_o);
-            close(p2[1]);
+            close(impar ? p2[1] : p1[1]);
     }
     
 }
@@ -297,18 +296,20 @@ int executaPedido(Pedido *pedido, char *pasta) {
             }
 
             //0 fork->dups especiais de in->exec
-            realizaTransf(pedido, pasta, 0, p1, p2);
+            //realizaTransf(pedido, pasta, 0, p1, p2);
             int i;
-            for (i = 1; i< pedido->n_transfs - 1; i++) { //fork->dups alternantes (i%2)->exec
+            for (i = 0; i< pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
                 realizaTransf(pedido, pasta, i, p1, p2);
             }
             //n_transf-1 fork->dup especial COM CONTA DO ALTERNANTE (i%2) de out->exec
-            realizaTransf(pedido, pasta, i, p1, p2);
+            //realizaTransf(pedido, pasta, i, p1, p2);
 
             close(p1[0]);
             close(p1[1]);
             close(p2[0]);
             close(p2[1]);
+            //o manager avisa o cliente ou avisa o servidor que avisa o cliente
+                //prob avisa o servidor que avisa o cliente
             _exit(0);
         }
 
