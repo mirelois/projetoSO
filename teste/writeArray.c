@@ -111,32 +111,17 @@ int printHT(HT *h, int size) {
 
 int main(int argc, char *argv[])
 {
-    Pedido *pedido;
-    HT maxs;
-    initHT(&maxs, 11);
-    char* s = "da";
-    writeHT(&maxs, "da", 3);
-    printHT(&maxs, maxs.size);
-    char *pot;
-    int r;
-    printf("%d %d\n", readHT(&maxs, "da", &r), r);
-    strArrayToString(argc-1, argv+1, &pot, 1);
-    printf("%s\n", pot);
-    createPedido(pot, &pedido, &maxs);
-    printf("%d\n", pedido->n_transfs);
-    for (int i = 0; i<pedido->n_transfs+3; i++) {
-        printf("%s\n", pedido->transfs[i]);
+    int i = atoi(argv[2]);
+    if (i == 0) {
+        strncpy(argv[0], argv[1], 10);
+        strncpy(argv[1], "1", 2);
+        i = 1;
+    } else if (i > 5 || i < 1) {
+        strncpy(argv[2], "1", 2);
+        i = 0;
     }
-    printHT(pedido->hashtable, pedido->hashtable->size);
-    //free(pot);
-    //free(pedido->hashtable);
-    //free(pedido->transfs);
-    //free(pedido);
-    //char *pot;
-    //strArrayToString(argc-1, argv+1, &pot, 1);
-    //printf("%s\n", pot);
-    //printf("Escrito\n");
-    
-    //char *lido[argc-1];
+    char *dest;
+    strArrayToString(argc-1+i, argv+1-i, &dest, 0);
+    printf("%s\n", dest);
     return 0;
 }

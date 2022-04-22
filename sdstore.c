@@ -19,15 +19,15 @@ int main(int argc, char const *argv[])
     } else if (argc == 2 && strcmp(argv[1], "status") == 0) {
         //do status, pedir ao servidor o status das tasks em execução e dos limites
         //o server que imprima as suas cenas, I'm done here.
-    } else if (argc >= 2 && strcmp(argv[1], "proc-file") == 0) {
+    } else if (argc >= 4 && strcmp(argv[1], "proc-file") == 0) {
         //coisas muito manhosas mesmo
         int i = atoi(argv[2]);
-        if (i == -1) {
-            strncpy(argv[0], argv[1], 9);
-            strncpy(argv[1], "1", 1);
+        if (i == 0) {
+            strncpy(argv[0], argv[1], 10);
+            strncpy(argv[1], "1", 2);
             i = 1;
         } else if (i > 5 || i < 1) {
-            strncpy(argv[2], "1", 1);
+            strncpy(argv[2], "1", 2);
             i = 0;
         }
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
