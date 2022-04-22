@@ -96,82 +96,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs) {
     return 0;
 }
 
-int main(int argc, char const *argv[]) {
-    //o servidor é executado com o config e com a pasta
-    //todo teste para ver se não nos estão a tentar executar o server maliciosamente
-    int fdConfig;
-    if (argc < 3 || (fdConfig = open(argv[1], O_RDONLY)) == -1) {
-        //como validar um path (pasta)?
-        perror("Failed to execute server");
-        return -1;
-    }
-
-    char pasta[] = argv[2];
-    //lembrar da pasta em algum sítio para os executáveis
-    //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
-    HT maxs;
-    //todo preencher o dicionário com 1º argumento
-    //parse desse ficheiro .config: readln c/ sequencial até ' '
-
-    //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
-    char pipeRead[MAX_BUFF];
-    //loop de read do pipe com nome para buffer
-
-    char pipeParse[32];
-    int i = 0, w;
-    StringToBuffer(i, pipeRead, pipeParse)
-    if (strcmp(pipeParse, "status") == 0) {
-        //não esquecer de fazer o status
-        //tem diferente input
-        //apenas imprime o que está a ser processado (não o que está à espera)
-        //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
-            //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
-    } else if (strcmp(pipeParse, "proc-file") == 0) {
-        //Leitura do pedido
-        Pedido *pedido;
-        if ((w = createPedido(pipeRead+i, &pedido, &maxs)) == -1) {
-            //erro de execução
-            return -1;
-        } else if (w == 1) {
-            //pedido rejeitado
-            deepFree(pedido);
-            //escrever de volta ao cliente que deu asneira
-        }
-        
-        //tentar executar logo?, se não colocar à espera
-    } else {
-        //erro de input do cliente, rejeitar o pedido
-    }
-
-    //suponhamos que o servidor sabe prioridade, init file, transfs e file final
-    //1ª coisa que ele faz:
-    //ler todas as transfs e guardar num dicionário quantas são de cada
-    
-    //ver se nenhuma delas excede o valor max == nunca vai ser executado => atirar para o lixo oops (não encher a queue)
-        //nesse caso deu barraco senhor cliente
-
-    //ponderar executar da queue: ver cada valor de cada transf e ver se "cabe"
-        //se "cabe", executa.
-        //se não conseguir, vai para o fim que se lixa tentasse noutra altura c:
-
-    //sem prioridades, queue para os processos
-    //para fazer prioridades é preciso alguma coisa parecida com maxheap/array com valor máximo tipo orla do djikstra
-
-    //prioridade extra: quantidade de transformações/quantidade de transformações iguais == n_transf que passamos para o executaPedido
-    //tentar escolher a que tem menos porque deve demorar menos
-
-    //finalmente executar alguma coisa yey como?
-    //as transformações lêem do stdin e mandam para o stdout
-    //como começar/acabar?
-        //fazer dup do stdin direto para o ficheiro OU fazer dup para um pipe e escrever nesse pipe
-        //quando fazer open do ficheiro inicial/final? antes ou depois do fork?
-    
-    //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
-    //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
-    //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
-    return 0;
-}
-
 void escolheEntradaSaidaOneTransf(Pedido *pedido){
     int fd_i, fd_o;
     if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
@@ -294,9 +218,10 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 write(2, "Failed pipe 2", 14);
                 _exit(-1);
             }
-
+            
             //0 fork->dups especiais de in->exec
             //realizaTransf(pedido, pasta, 0, p1, p2);
+            //não funciona c:
             int i;
             for (i = 0; i< pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
                 realizaTransf(pedido, pasta, i, p1, p2);
@@ -327,4 +252,81 @@ int executaPedido(Pedido *pedido, char *pasta) {
         //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
         //o manager também pode logo mandar o aviso ao cliente de alguma maneira
     }
+
+    int main(int argc, char const *argv[]) {
+    //o servidor é executado com o config e com a pasta
+    //todo teste para ver se não nos estão a tentar executar o server maliciosamente
+    int fdConfig;
+    if (argc < 3 || (fdConfig = open(argv[1], O_RDONLY)) == -1) {
+        //como validar um path (pasta)?
+        perror("Failed to execute server");
+        return -1;
+    }
+
+    char pasta[] = argv[2];
+    //lembrar da pasta em algum sítio para os executáveis
+    //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
+    HT maxs;
+    //todo preencher o dicionário com 1º argumento
+    //parse desse ficheiro .config: readln c/ sequencial até ' '
+
+    //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
+    char pipeRead[MAX_BUFF];
+    //loop de read do pipe com nome para buffer
+
+    char pipeParse[32];
+    int i = 0, w;
+    StringToBuffer(i, pipeRead, pipeParse)
+    if (strcmp(pipeParse, "status") == 0) {
+        //não esquecer de fazer o status
+        //tem diferente input
+        //apenas imprime o que está a ser processado (não o que está à espera)
+        //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
+            //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
+    } else if (strcmp(pipeParse, "proc-file") == 0) {
+        //Leitura do pedido
+        Pedido *pedido;
+        if ((w = createPedido(pipeRead+i, &pedido, &maxs)) == -1) {
+            //erro de execução
+            return -1;
+        } else if (w == 1) {
+            //pedido rejeitado
+            deepFree(pedido);
+            //escrever de volta ao cliente que deu asneira
+        }
+        
+        //tentar executar logo?, se não colocar à espera
+    } else {
+        //erro de input do cliente, rejeitar o pedido
+    }
+
+    //suponhamos que o servidor sabe prioridade, init file, transfs e file final
+    //1ª coisa que ele faz:
+    //ler todas as transfs e guardar num dicionário quantas são de cada
+    
+    //ver se nenhuma delas excede o valor max == nunca vai ser executado => atirar para o lixo oops (não encher a queue)
+        //nesse caso deu barraco senhor cliente
+
+    //ponderar executar da queue: ver cada valor de cada transf e ver se "cabe"
+        //se "cabe", executa.
+        //se não conseguir, vai para o fim que se lixa tentasse noutra altura c:
+
+    //sem prioridades, queue para os processos
+    //para fazer prioridades é preciso alguma coisa parecida com maxheap/array com valor máximo tipo orla do djikstra
+
+    //prioridade extra: quantidade de transformações/quantidade de transformações iguais == n_transf que passamos para o executaPedido
+    //tentar escolher a que tem menos porque deve demorar menos
+
+    //finalmente executar alguma coisa yey como?
+    //as transformações lêem do stdin e mandam para o stdout
+    //como começar/acabar?
+        //fazer dup do stdin direto para o ficheiro OU fazer dup para um pipe e escrever nesse pipe
+        //quando fazer open do ficheiro inicial/final? antes ou depois do fork?
+    
+    //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
+    //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
+    //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
+    return 0;
+}
+
 }
