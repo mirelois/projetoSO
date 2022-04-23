@@ -43,7 +43,7 @@ void deepFree(Pedido *dest) {
         freeHT(dest->hashtable);
     if (dest->transfs) {
         int i;
-        for(i = 0; i<dest->n_transfs+3; i++) {
+        for(i = 0; i<dest->n_transfs+4; i++) {
             free(dest->transfs[i]);
         }
         free(dest->transfs);
@@ -52,8 +52,9 @@ void deepFree(Pedido *dest) {
     free(dest);
 }
 
-int createPedido(char *string, Pedido **dest, HT *maxs) {
+int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     *dest = malloc(sizeof(Pedido));
+    (*dest)->id = n_pedido;
     char buffer[32];
     //supor que tem a prioridade, in e out
     int r = 0, w, n, i = 0;
@@ -284,10 +285,19 @@ int main(int argc, char const *argv[]) {
         //apenas imprime o que está a ser processado (não o que está à espera)
         //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
             //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
+        /*
+        int i, n;
+        char *string;
+        for (i = 0; i < n_pedidos_processamento; i++) {
+            n = strArrayToString(pedidos_processamento[i]->n_transfs + 4, pedidos_processamento[i]->transfs, &string, 0);
+            write(1, string, n); ou se calhar tem de escrever o cliente?
+        }
+        o pedidos processamento pode não ser array, pode ter de ser com apontadores, depende da implementação
+        */
     } else if (strcmp(pipeParse, "proc-file") == 0) {
         //Leitura do pedido
         Pedido *pedido;
-        if ((w = createPedido(pipeRead, &pedido, &maxs)) == -1) {
+        if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
             //erro de execução
             return -1;
         } else if (w == 1) {
