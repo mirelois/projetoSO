@@ -19,7 +19,7 @@ int main(int argc, char const *argv[])
     } else if (argc == 2 && strcmp(argv[1], "status") == 0) {
         //do status, pedir ao servidor o status das tasks em execução e dos limites
         //o server que imprima as suas cenas, I'm done here.
-    } else if (argc >= 4 && strcmp(argv[1], "proc-file") == 0) {
+    } else if (argc >= 5 && strcmp(argv[1], "proc-file") == 0) {
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto
         //esperar pelas informações do servidor? para imprimir pending, processing e concluded. Ler do pipe com nome???

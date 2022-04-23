@@ -256,14 +256,18 @@ int main(int argc, char const *argv[]) {
     int fdConfig;
     if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
         //como validar um path (pasta)?
-        perror("Failed to execute server");
+        write(2, "Failed to open config file", 25);
         return -1;
     }
 
     char pasta[] = argv[2];
     //lembrar da pasta em algum sítio para os executáveis
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
+
     HT maxs;
+    if (readConfigNew(fdConfig, maxs) == -1) {
+        write(2, "Failed to read config", 22);
+    }
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
 

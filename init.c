@@ -1,6 +1,7 @@
 #include "init.h"
 #include "includes.h"
 
+
 int strArrayToString(int n, char *array[], char **dest, int mode) {
     char *sep = " ", buffer[33];
     int i,c,s;
@@ -34,9 +35,10 @@ int strArrayToString(int n, char *array[], char **dest, int mode) {
 }
 
 int readConfigNew(int fd, HT *hash_table) {
+    //ver os casos em que pode falhar
     initHT(hash_table, DICT_SIZE);
     int bytes_read, i = 0, word_size;
-    char buff[MAX_BUFF], dict_key[20], dict_value[5];
+    char buff[MAX_BUFF], dict_key[MAX_TRANSF_SIZE], dict_value[5];
     bytes_read = read(fd, buff, MAX_BUFF);
     while(bytes_read > 0) {
         word_size = 0;
@@ -78,6 +80,7 @@ int readConfigNew(int fd, HT *hash_table) {
 }
 
 //esta está testada e funciona
+//ver os casos em que pode falhar em -1
 
 ssize_t readConfig(int fd, HT *hash_table) {
 
