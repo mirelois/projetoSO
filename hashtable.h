@@ -1,5 +1,6 @@
 #define INIT_DICT_SIZE 13
 #define MAX_CHARGE 0.75
+#define MAX_TRANSF_SIZE 32
 #define FREE(p) strcmp((h->tbl)[p].key, EMPTY) == 0 || strcmp((h->tbl)[p].key, DELETED) == 0
 
 #define EMPTY       "-"
@@ -7,7 +8,7 @@
 
 
 struct pair {
-    char key[20];
+    char key[MAX_TRANSF_SIZE];
     int value;
 };
     

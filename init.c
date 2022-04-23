@@ -36,7 +36,7 @@ int strArrayToString(int n, char *array[], char **dest, int mode) {
 
 int readConfigNew(int fd, HT *hash_table) {
     //ver os casos em que pode falhar
-    initHT(hash_table, DICT_SIZE);
+    initHT(hash_table, INIT_DICT_SIZE);
     int bytes_read, i = 0, word_size;
     char buff[MAX_BUFF], dict_key[MAX_TRANSF_SIZE], dict_value[5];
     bytes_read = read(fd, buff, MAX_BUFF);
