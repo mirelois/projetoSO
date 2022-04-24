@@ -100,7 +100,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
 
 void escolheEntradaSaidaOneTransf(Pedido *pedido){
     int fd_i, fd_o;
-    write(1, "hello?\n", 8);
     if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
         write(2,"Failed to open file in", 23);
         _exit(-1);
@@ -176,18 +175,15 @@ int executaPedido(Pedido *pedido, char *pasta) {
             char buffer[strlen(pasta) + strlen(pedido->transfs[4]) + 1];
             switch(fork()){
                 case -1:
-                    write(1, "espera que2te lixas\n", 21);
                     write(2, "Failed Fork Manager to Child", 29);
                     _exit(-1);
                 case 0:
-                    write(1, "espera que2te lixas\n", 21);
                     escolheEntradaSaidaOneTransf(pedido);
                     sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     int ret = execl(buffer, buffer);
                     write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
                 default: 
-                    write(1, "espera que te lixas\n", 21);
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
