@@ -254,7 +254,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
 int addPendingQueue(Pedido *pedido, PendingQueue queue[]) {
     LList *new;
     if ((new = malloc(sizeof(LList))) == NULL) {
-        write(2, "Failde to create LList", 23);
+        write(2, "Failed to create LList", 23);
         return -1;
     }
     new->next = NULL;
@@ -269,12 +269,11 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     int i, s, new, c, max;
     for (i = 0, s = 0; i<pedido->hashtable->size && s<pedido->hashtable->used; i++) {
         
-        strncpy(transf, pedido->hashtable->tbl[i].key, MAX_TRANSF_SIZE);
-        if (!(FREE(transf))) {
+        if (!(FREE(pedido->hashtable, i))) {
             s++;
-            readHT(maxs, transf, &max);
-            readHT(pedido->hashtable, transf, &new);
-            if (readHT(curr, transf, &c) == -1) {
+            readHT(maxs, pedido->hashtable->tbl[i].key, &max);
+            readHT(pedido->hashtable, pedido->hashtable->tbl[i].key, &new);
+            if (readHT(curr, pedido->hashtable->tbl[i].key, &c) == -1) {
                 c = 0;
             }
             if (max - c < new)
@@ -286,13 +285,13 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     int i;
-    LList *nodo;
+    LList **nodo;
     Pedido *pedido;
     for (i = MAX_PRIORITY - 1; i>=0; i--) {
-        for (nodo = queue[i].start; nodo != NULL; nodo = nodo->next) {
-            pedido = nodo->pedido;
+        for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
+            pedido = (*nodo)->pedido;
             if (isPedidoExec(pedido, maxs, curr)) {
-                queue[i].start = nodo->next;
+                (*nodo) = (*nodo)->next;
                 return pedido;
             }
         }
@@ -379,6 +378,7 @@ int main(int argc, char const *argv[]) {
         pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
         if (pedido != NULL) {
             //adicionar aos em processamento
+            
             //avisar o cliente que foi adicionado aos em processamento
             executaPedido(pedido, pasta);
         }
