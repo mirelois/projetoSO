@@ -202,7 +202,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                         write(2, "Failed Fork Manager to Child", 29);
                         _exit(-1);
                     case 0:
-                        escolheEntradaSaida(pedido, i, **p);
+                        escolheEntradaSaida(pedido, i, p);
                         sprintf(buffer, "%s/%s", pasta, pedido->transfs[i+4]);
                         int ret = execl(buffer, buffer);
                         write(2, "Failed Exec Manager Child", 26);
