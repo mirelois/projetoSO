@@ -7,3 +7,5 @@
 
 int readConfig(int fd, HT *hash_table);
 int strArrayToString(int n, char *array[], char **dest, int mode);
+
+
