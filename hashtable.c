@@ -73,10 +73,8 @@ int plusOneHT(HT *h, char key[], int *value) {
  * @return 0 se p nao e primo 1 caso contrario
  */
 void freeHT(HT *h) {
-    int p;
-    for(p = 0; p < h->size; p++){
-        free(h->tbl+p);
-    }
+    free(h->tbl);
+    free(h);
 }
 
 /**
