@@ -48,7 +48,6 @@ void deepFree(Pedido *dest) {
         }
         free(dest->transfs);
     }
-    free(dest->string);
     free(dest);
 }
 
@@ -72,7 +71,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     }
 
     (*dest)->hashtable = malloc(sizeof(HT));
-    initHT(h, 13);
+    initHT((*dest)->hashtable, 13);
     for(; string[r] != '\0' && i < n; r++, i++) {
         StringToBuffer(r, string, buffer)
         //escrever o buffer para os transfs
@@ -251,8 +250,8 @@ int addPendingQueue(Pedido *pedido, PendingQueue queue[]) {
     }
     new->next = NULL;
     new->pedido = pedido;
-    queue[(pedido->transfs[1] - 1)].end->next = new;
-    queue[(pedido->transfs[1] - 1)].end = new;
+    queue[atoi(pedido->transfs[1])-1].end->next = new;
+    queue[atoi(pedido->transfs[1])-1].end = new;
     return 0;
 }
 
@@ -367,7 +366,7 @@ int main(int argc, char const *argv[]) {
         }
         //avisar o cliente que foi posto em pending
         
-        pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
+        pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
         if (pedido != NULL) {
             //adicionar aos em processamento
             
@@ -405,6 +404,6 @@ int main(int argc, char const *argv[]) {
     //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
     //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
-    freeHT(maxs);
+    //freeHT(maxs);
     return 0;
 }

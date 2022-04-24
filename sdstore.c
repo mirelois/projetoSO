@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
         int i, n;
         n = atoi(argv[2]);
         if (n < 1 || n > MAX_PRIORITY) {
-            write(2, "Missing priority.");
+            write(2, "Missing priority.",18);
             return -1;
         }
         n = strArrayToString(argc-1, argv+1, &string, 1); //testar erro?
