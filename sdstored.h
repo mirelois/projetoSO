@@ -7,15 +7,6 @@
 #include "init.h"
 #include "malloc.h"
 
-typedef struct cabeca {
-    LList *start;
-    LList *end;
-}PendingQueue;
-
-typedef struct nodo {
-    Pedido *pedido;
-    LList *next;
-}LList;
 
 typedef struct pedido {
     //guardar strings para não sobrecarregar fd's do servidor
@@ -25,3 +16,13 @@ typedef struct pedido {
     HT *hashtable;
     char **transfs;
 }Pedido;
+
+typedef struct nodo {
+    Pedido *pedido;
+    struct nodo *next;
+}LList;
+
+typedef struct cabeca {
+    LList *start;
+    LList *end;
+}PendingQueue;

@@ -2,10 +2,10 @@
 #include "includes.h"
 
 
-int strArrayToStr(int n, char *array[], char **dest, int mode) {
+int strArrayToString(int n, char *array[], char **dest, int mode) {
     char *sep = " ", buffer[33];
     int i,c,s;
-    itoa(n, buffer, 10);
+    snprintf(buffer, 33, "%d", n);
     
     for (i = 0, c = 0, s = -1; i<n; i++, s++) {
         c += strlen(array[i]);
@@ -51,7 +51,7 @@ int readConfig(int fd, HT *hash_table) {
                 i++;
             }
         }
-        dict_key[word_size+1] = '\0';
+        dict_key[word_size] = '\0';
         i++; //ew tenho de fazer read aqui again
         if (i == bytes_read) {
             bytes_read = read(fd, buff, MAX_BUFF);
@@ -68,7 +68,7 @@ int readConfig(int fd, HT *hash_table) {
                 i++;
             }
         }
-        dict_value[word_size+1] = '\0';
+        dict_value[word_size] = '\0';
         i++;
         writeHT(hash_table, dict_key, atoi(dict_value));
         if (i == bytes_read) {

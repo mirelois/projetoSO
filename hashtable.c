@@ -207,3 +207,10 @@ int deleteHT (HT *h, char key[]) {
     }
     return p;
 }
+
+int printHT(HT *h, int size) {
+    for(int i = 0; i < size; i++) {
+        printf("%d -> (%s,%d)\n",i ,(h->tbl)[i].key, (h->tbl)[i].value);
+    }
+    return 0;
+}

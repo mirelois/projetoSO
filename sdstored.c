@@ -176,13 +176,14 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     int ret = execl(buffer, buffer);
                     write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
-                default:
+                default: {
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
                         write(2, "Failed Exec or Transf", 22);
                         _exit(-1);
                     }
+                }
                 }
         } else {
             //0 fork->dups especiais de in->exec
@@ -275,6 +276,7 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 }
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
+    //não funfa c:
     int i;
     LList **nodo;
     Pedido *pedido;
@@ -296,14 +298,14 @@ int main(int argc, char const *argv[]) {
     int fdConfig;
     if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
         //como validar um path (pasta)?
-        write(2, "Failed to open config file", 25);
+        write(2, "Failed to open config file\n", 28);
         return -1;
     }
 
-    char pasta[] = argv[2];
+    char *pasta = argv[2];
     //lembrar da pasta em algum sítio para os executáveis
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
-
+    
     HT maxs;
     if (initHT(&maxs, INIT_DICT_SIZE) == -1) {
         write(2, "No space for Hashtable", 23);
@@ -311,12 +313,13 @@ int main(int argc, char const *argv[]) {
     if (readConfig(fdConfig, &maxs) == -1) {
         write(2, "Failed to read config", 22);
     }
+    printHT(&maxs, maxs.size);
+
     //fix manhoso
     HT curr;
     if (initHT(&curr, INIT_DICT_SIZE) == -1) {
         write(2, "No space for Hashtable", 23);
     }
-
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
     int i;
@@ -325,9 +328,9 @@ int main(int argc, char const *argv[]) {
         pendingQ[i].end = NULL;
         pendingQ[i].start = NULL;
     }
-
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     char pipeRead[MAX_BUFF];
+    read(0, pipeRead, MAX_BUFF);
     //loop de read do pipe com nome para buffer
 
     char pipeParse[32];
@@ -364,12 +367,11 @@ int main(int argc, char const *argv[]) {
             
             return -1;
         }
+        executaPedido(pedido, pasta);
         //avisar o cliente que foi posto em pending
-        
         pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
         if (pedido != NULL) {
             //adicionar aos em processamento
-            
             //avisar o cliente que foi adicionado aos em processamento
             executaPedido(pedido, pasta);
         }

@@ -32,3 +32,5 @@ int writeHT (HT *h, char key[], int value);
 int readHT (HT *h, char key[], int* value);
 
 int deleteHT (HT *h, char key[]);
+
+int printHT(HT *h, int size);
