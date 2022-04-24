@@ -110,7 +110,7 @@ int writeHTaux (HT *h, char key[], int value) {
 
     int p= hash(key, h->size);
 
-    for(p; !FREE(p); p = (p+1)%(h->size));
+    for(p; !FREE(h,p); p = (p+1)%(h->size));
 
     strcpy((h->tbl)[p].key, key);
     (h->tbl)[p].value = value;
