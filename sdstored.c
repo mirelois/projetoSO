@@ -251,6 +251,55 @@ int executaPedido(Pedido *pedido, char *pasta) {
     }
 }
 
+int addPendingQueue(Pedido *pedido, PendingQueue queue[]) {
+    LList *new;
+    if ((new = malloc(sizeof(LList))) == NULL) {
+        write(2, "Failde to create LList", 23);
+        return -1;
+    }
+    new->next = NULL;
+    new->pedido = pedido;
+    queue[(pedido->transfs[1] - 1)].end->next = new;
+    queue[(pedido->transfs[1] - 1)].end = new;
+    return 0;
+}
+
+int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
+    char transf[MAX_TRANSF_SIZE];
+    int i, s, new, c, max;
+    for (i = 0, s = 0; i<pedido->hashtable->size && s<pedido->hashtable->used; i++) {
+        
+        strncpy(transf, pedido->hashtable->tbl[i].key, MAX_TRANSF_SIZE);
+        if (!(FREE(transf))) {
+            s++;
+            readHT(maxs, transf, &max);
+            readHT(pedido->hashtable, transf, &new);
+            if (readHT(curr, transf, &c) == -1) {
+                c = 0;
+            }
+            if (max - c < new)
+                return 0;
+        }
+    }
+    return 1;
+}
+
+Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
+    int i;
+    LList *nodo;
+    Pedido *pedido;
+    for (i = MAX_PRIORITY - 1; i>=0; i--) {
+        for (nodo = queue[i].start; nodo != NULL; nodo = nodo->next) {
+            pedido = nodo->pedido;
+            if (isPedidoExec(pedido, maxs, curr)) {
+                queue[i].start = nodo->next;
+                return pedido;
+            }
+        }
+    }
+    return NULL;
+}
+
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
@@ -266,18 +315,34 @@ int main(int argc, char const *argv[]) {
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
 
     HT maxs;
-    if (readConfigNew(fdConfig, maxs) == -1) {
+    if (initHT(&maxs, INIT_DICT_SIZE) == -1) {
+        write(2, "No space for Hashtable", 23);
+    }
+    if (readConfigNew(fdConfig, &maxs) == -1) {
         write(2, "Failed to read config", 22);
     }
+    //fix manhoso
+    HT curr;
+    if (initHT(&curr, INIT_DICT_SIZE) == -1) {
+        write(2, "No space for Hashtable", 23);
+    }
+
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
+    int i;
+    PendingQueue pendingQ[MAX_PRIORITY];
+    for (i = 0; i<MAX_PRIORITY; i++) {
+        pendingQ[i].end = NULL;
+        pendingQ[i].start = NULL;
+    }
 
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     char pipeRead[MAX_BUFF];
     //loop de read do pipe com nome para buffer
 
     char pipeParse[32];
-    int i = 0, w, n_pedido = 0;
+    int w, n_pedido = 0;
+    i = 0;
     StringToBuffer(i, pipeRead, pipeParse)
     if (strcmp(pipeParse, "status") == 0) {
         //não esquecer de fazer o status
@@ -305,7 +370,18 @@ int main(int argc, char const *argv[]) {
             deepFree(pedido);
             //escrever de volta ao cliente que deu asneira
         }
+        if (addPendingQueue(pedido, pendingQ)==-1) {
+            
+            return -1;
+        }
+        //avisar o cliente que foi posto em pending
         
+        pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
+        if (pedido != NULL) {
+            //adicionar aos em processamento
+            //avisar o cliente que foi adicionado aos em processamento
+            executaPedido(pedido, pasta);
+        }
         //tentar executar logo?, se não colocar à espera
     } else {
         //erro de input do cliente, rejeitar o pedido
@@ -337,5 +413,6 @@ int main(int argc, char const *argv[]) {
     //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
     //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
+    freeHT(maxs);
     return 0;
 }

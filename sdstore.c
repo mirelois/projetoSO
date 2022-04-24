@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
         char *string;
         int i, n;
         n = atoi(argv[2]);
-        if (n < 1 || n > 5) {
+        if (n < 1 || n > MAX_PRIORITY) {
             write(2, "Missing priority.");
             return -1;
         }

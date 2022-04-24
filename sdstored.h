@@ -1,11 +1,21 @@
 #include "unistd.h"
 #include "errno.h"
 #include "string.h"
-#include "hashtable.h"
+//#include "hashtable.h"
 #include "stdio.h"
 #include <fcntl.h>
 #include "init.h"
 #include "malloc.h"
+
+typedef struct cabeca {
+    LList *start;
+    LList *end;
+}PendingQueue;
+
+typedef struct nodo {
+    Pedido *pedido;
+    LList *next;
+}LList;
 
 typedef struct pedido {
     //guardar strings para não sobrecarregar fd's do servidor

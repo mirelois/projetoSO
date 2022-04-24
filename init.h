@@ -1,4 +1,5 @@
 #define MAX_BUFF 1024
+#define MAX_PRIORITY 5
 
 #include "hashtable.h"
 
