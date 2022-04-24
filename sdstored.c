@@ -115,80 +115,43 @@ void escolheEntradaSaidaOneTransf(Pedido *pedido){
     close(fd_o);
 }
 
-void escolheEntradaSaida(Pedido *pedido, int i, int p1[], int p2[]){
-    int impar = i % 2;
-    if(i!=0){
-        close(p1[impar]);
-        close(p2[!impar]);
-        
-        if((impar ? dup2(p1[0], 0) : dup2(p2[0], 0)) == -1){
+void escolheEntradaSaida(Pedido *pedido, int i, int **p){
+    if(i == pedido->n_transfs-1){
+        if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input", 24);
             _exit(-1);
         }
-    }else{
-        close(p1[0]);
-        close(p2[0]);
-        close(p2[1]);
-
-        int fd_i;
-        if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
-        write(2, "Failed to open file in", 23);
+        close(p[i-1][0]);
+        int fd_o;
+        if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+            write(2, "Failed to open file out", 24);
             _exit(-1);
         }
-                    
-        if((dup2(fd_i, 0)) == -1){
+        if((dup2(fd_o, 1)) == -1){
+            write(2, "Failed to dup the output", 25);
+            _exit(-1);
+        }
+        close(fd_o);
+    }else if(i == 0){
+        close(p[i][0]);
+        if((dup2(p[i][1], 1)) == -1){
+            write(2, "Failed to dup the output", 25);
+            _exit(-1);
+        }
+        close(p[i][1]);
+    }else{
+        close(p[i][0]);
+        if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input", 24);
             _exit(-1);
         }
-        close(fd_i);
-    }
-
-    if(pedido->n_transfs-1 != i){
-        if((impar ? dup2(p2[1], 1) : dup2(p1[1], 1)) == -1){
-                write(2, "Failed to dup the output", 25);
-                _exit(-1);
-            }
-    }else{
-            int fd_o;
-            if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-                write(2, "Failed to open file out", 24);
-                _exit(-1);
-            }
-            if((dup2(fd_o, 1)) == -1){
-                write(2, "Failed to dup the output", 25);
-                _exit(-1);
-            }
-            close(fd_o);
-            close(impar ? p2[1] : p1[1]);
-    }
-    
-}
-
-void realizaTransf(Pedido *pedido, char *pasta, int i, int p1[], int p2[]){
-    char *buffer=NULL;
-    switch(fork()){ // Primeiro fork -> dup(..., 0) -> exec
-        case -1:
-            write(2, "Failed Fork Manager to Child", 29);
+        close(p[i-1][0]);
+        if((dup2(p[i][1], 1)) == -1){
+            write(2, "Failed to dup the output", 25);
             _exit(-1);
-        case 0:
-            if(p1 != NULL || p2 != NULL)
-                escolheEntradaSaida(pedido, i, p1, p2);
-            else
-                escolheEntradaSaidaOneTransf(pedido);
-            buffer = malloc(strlen(pasta) + strlen(pedido->transfs[i+4]) + 1);
-            sprintf(buffer, "%s/%s", pasta, pedido->transfs[i+4]);
-            int ret = execl(buffer, buffer);
-            write(2, "Failed Exec Manager Child", 26);
-            _exit(ret);
-        default:
-            int status;
-            wait(&status);
-            if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                write(2, "Failed Exec or Transf", 22);
-                _exit(-1);
-            }
         }
-    
+        close(p[i][1]);
+    }
 }
 
 int executaPedido(Pedido *pedido, char *pasta) {
@@ -203,33 +166,62 @@ int executaPedido(Pedido *pedido, char *pasta) {
     } else if (manager == 0) {
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
         if (pedido->n_transfs == 1) {
-            realizaTransf(pedido, pasta, 0, NULL, NULL);
+            char buffer[strlen(pasta) + strlen(pedido->transfs[4]) + 1];
+            switch(fork()){
+                case -1:
+                    write(2, "Failed Fork Manager to Child", 29);
+                    _exit(-1);
+                case 0:
+                    escolheEntradaSaidaOneTransf(pedido);
+                    sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
+                    int ret = execl(buffer, buffer);
+                    write(2, "Failed Exec Manager Child", 26);
+                    _exit(ret);
+                default:
+                    int status;
+                    wait(&status);
+                    if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                        write(2, "Failed Exec or Transf", 22);
+                        _exit(-1);
+                    }
+                }
         } else {
-            int p1[2];
-            int p2[2];
-            if (pipe(p1)==-1) {
-                write(2, "Failed pipe 1", 14);
-                _exit(-1);
-            }
-            if (pipe(p2)==-1) {
-                write(2, "Failed pipe 2", 14);
-                _exit(-1);
-            }
-            
             //0 fork->dups especiais de in->exec
             //realizaTransf(pedido, pasta, 0, p1, p2);
             //não funciona c:
-            int i;
-            for (i = 0; i< pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
-                realizaTransf(pedido, pasta, i, p1, p2);
-            }
+            int p[pedido->n_transfs-1][2], i;
+            for (i = 0; i < pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
+                if(i != pedido->n_transfs-1)
+                    if(pipe(p[i]) == -1){
+                        write(2, "Failed pipe", 12);
+                        _exit(-1);
+                    }
+                char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
+                switch(fork()){
+                    case -1:
+                        write(2, "Failed Fork Manager to Child", 29);
+                        _exit(-1);
+                    case 0:
+                        escolheEntradaSaida(pedido, i, **p);
+                        sprintf(buffer, "%s/%s", pasta, pedido->transfs[i+4]);
+                        int ret = execl(buffer, buffer);
+                        write(2, "Failed Exec Manager Child", 26);
+                        _exit(ret);
+                    default:
+                        if(i != pedido->n_transfs-1)
+                            close(p[i][1]);
+                        if(i != 0)
+                            close(p[i-1][0]);
+                        int status;
+                        wait(&status);
+                        if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                            write(2, "Failed Exec or Transf", 22);
+                            _exit(-1);
+                        }
+                    }
+                }
             //n_transf-1 fork->dup especial COM CONTA DO ALTERNANTE (i%2) de out->exec
             //realizaTransf(pedido, pasta, i, p1, p2);
-
-            close(p1[0]);
-            close(p1[1]);
-            close(p2[0]);
-            close(p2[1]);
             //o manager avisa o cliente ou avisa o servidor que avisa o cliente
                 //prob avisa o servidor que avisa o cliente
             _exit(0);
