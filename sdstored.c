@@ -308,7 +308,7 @@ int main(int argc, char const *argv[]) {
     if (initHT(&maxs, INIT_DICT_SIZE) == -1) {
         write(2, "No space for Hashtable", 23);
     }
-    if (readConfigNew(fdConfig, &maxs) == -1) {
+    if (readConfig(fdConfig, &maxs) == -1) {
         write(2, "Failed to read config", 22);
     }
     //fix manhoso
