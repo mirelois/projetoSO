@@ -1,7 +1,7 @@
 #include "sdstored.h"
 
 #define StringToBuffer(r, string, buffer) \
-    for (w = 0; string[r] != '\0' && string[r] != ' '; w++, r++) {\
+    for (w = 0; string[r] != '\0' && string[r] != ' ' && string[r] != '\n'; w++, r++) {\
        buffer[w] = string[r];\
     }\
     buffer[w] = '\0';\
@@ -23,6 +23,7 @@
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
     int max, curr;
+    printf("%s\n", transf);
     if (readHT(maxs, transf, &max) == -1) {
         write(2, "Transformation not in config.", 31);
         return 1;
@@ -56,13 +57,17 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     (*dest)->id = n_pedido;
     char buffer[32];
     //supor que tem a prioridade, in e out
-    int r = 0, w, n, i = 0;
+    int r = 10, w, n, i = 1; //saltar o proc-file à frente
     StringToBuffer(r, string, buffer)
-    //primeira parte da string é o número de argumentos
+    printf("2\n");
+    //segunda parte da string é o número de argumentos
     n = atoi(buffer);
     (*dest)->transfs = malloc(n*sizeof(char*));
+    (*dest)->transfs[0] = strdup("proc-file");
+    
     for(; string[r] != '\0' && i<4; i++) {
         StringToBuffer(r, string, buffer)
+        printf("%s %d\n", buffer, strlen(buffer));
         //escrever o buffer para os transfs
         if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
             write(2, "Problem with memory.", 21);
@@ -74,12 +79,15 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     initHT((*dest)->hashtable, 13);
     for(; string[r] != '\0' && i < n; r++, i++) {
         StringToBuffer(r, string, buffer)
+        printf("%s %d\n", buffer, strlen(buffer));
         //escrever o buffer para os transfs
         if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
             write(2, "Problem with memory.", 21);
             return -1;
         }
         //temos de ver os espaços, ir adicionando ao HT
+        
+        printf(" lmao %s\n", (*dest)->transfs[i]);
         if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
             //pedido rejeitado
             return 1;
@@ -88,12 +96,14 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
             return -1;
         }
     }
+
     (*dest)->n_transfs = n-4;
     return 0;
 }
 
 void escolheEntradaSaidaOneTransf(Pedido *pedido){
     int fd_i, fd_o;
+    write(1, "hello?\n", 8);
     if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
         write(2,"Failed to open file in", 23);
         _exit(-1);
@@ -164,26 +174,30 @@ int executaPedido(Pedido *pedido, char *pasta) {
         write(2,"Failed Fork to Manager", 23);
     } else if (manager == 0) {
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
+        
         if (pedido->n_transfs == 1) {
             char buffer[strlen(pasta) + strlen(pedido->transfs[4]) + 1];
             switch(fork()){
                 case -1:
+                    write(1, "espera que2te lixas\n", 21);
                     write(2, "Failed Fork Manager to Child", 29);
                     _exit(-1);
                 case 0:
+                    write(1, "espera que2te lixas\n", 21);
                     escolheEntradaSaidaOneTransf(pedido);
                     sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     int ret = execl(buffer, buffer);
                     write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
-                default: {
+                default: 
+                    write(1, "espera que te lixas\n", 21);
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
                         write(2, "Failed Exec or Transf", 22);
                         _exit(-1);
                     }
-                }
+                    _exit(0);
                 }
         } else {
             //0 fork->dups especiais de in->exec
@@ -226,7 +240,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 //prob avisa o servidor que avisa o cliente
             _exit(0);
         }
-
+        printf("dafuq\n");
         //fazer forks while houver transformações
         //fazemos 1º fork se houver transformação
         //E agora? Fazemos primeiro 1) e depois vê-se como os stores querem a cena avançada
@@ -236,6 +250,10 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
     } else {
+        int status;
+        wait(&status);
+        printf("esperou e acabou\n");
+        return 0;
         //não fazer nada de jeito ou um wait não bloqueante
         //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
         //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
@@ -243,16 +261,30 @@ int executaPedido(Pedido *pedido, char *pasta) {
     }
 }
 
-int addPendingQueue(Pedido *pedido, PendingQueue queue[]) {
+int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
     LList *new;
     if ((new = malloc(sizeof(LList))) == NULL) {
         write(2, "Failed to create LList", 23);
         return -1;
     }
+    int p = atoi(pedido->transfs[1]);
     new->next = NULL;
     new->pedido = pedido;
-    queue[atoi(pedido->transfs[1])-1].end->next = new;
-    queue[atoi(pedido->transfs[1])-1].end = new;
+    printf("%d\n", p);
+    if (queue[p-1].end != NULL) {
+        queue[p-1].end->next = new;
+    }
+    queue[p-1].end = new;
+    
+    for (int i = 0; i<MAX_PRIORITY; i++) {
+        printf("mas então mas %d, %d, %d\n", i, queue[i-1].end, queue[i-1].start);
+    }
+    printf("%d\n", p);
+    if (queue[p-1].start == NULL) {
+        printf("oi?\n");
+        queue[p-1].start = new;
+
+    }
     return 0;
 }
 
@@ -268,8 +300,10 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
             if (readHT(curr, pedido->hashtable->tbl[i].key, &c) == -1) {
                 c = 0;
             }
-            if (max - c < new)
+            if (max - c < new) {
+                printf("hello c:\n");
                 return 0;
+            }
         }
     }
     return 1;
@@ -283,10 +317,13 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     for (i = MAX_PRIORITY - 1; i>=0; i--) {
         for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
             pedido = (*nodo)->pedido;
-            if (isPedidoExec(pedido, maxs, curr)) {
+            printf("chegou\n");
+            int l;
+            if (l = isPedidoExec(pedido, maxs, curr)) {
                 (*nodo) = (*nodo)->next;
                 return pedido;
             }
+            printf("%d\n", l);
         }
     }
     return NULL;
@@ -313,7 +350,6 @@ int main(int argc, char const *argv[]) {
     if (readConfig(fdConfig, &maxs) == -1) {
         write(2, "Failed to read config", 22);
     }
-    printHT(&maxs, maxs.size);
 
     //fix manhoso
     HT curr;
@@ -331,6 +367,12 @@ int main(int argc, char const *argv[]) {
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     char pipeRead[MAX_BUFF];
     read(0, pipeRead, MAX_BUFF);
+    //lembrar de tirar
+    for (int i = 0; i<MAX_BUFF; i++) {
+        if (pipeRead[i] == EOF) {
+            pipeRead[i] = '\0';
+        }
+    }
     //loop de read do pipe com nome para buffer
 
     char pipeParse[32];
@@ -355,6 +397,7 @@ int main(int argc, char const *argv[]) {
     } else if (strcmp(pipeParse, "proc-file") == 0) {
         //Leitura do pedido
         Pedido *pedido;
+        printf("1\n");
         if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
             //erro de execução
             return -1;
@@ -363,14 +406,23 @@ int main(int argc, char const *argv[]) {
             deepFree(pedido);
             //escrever de volta ao cliente que deu asneira
         }
+        printf("%d, %d\n", pendingQ[0].start, pendingQ[0].end);
         if (addPendingQueue(pedido, pendingQ)==-1) {
             
             return -1;
         }
-        executaPedido(pedido, pasta);
+        printf("added pqueue\n");
+        //executaPedido(pedido, pasta);
         //avisar o cliente que foi posto em pending
+        
         pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
         if (pedido != NULL) {
+            printf("funciona pending\n");
+            for (int i = 0; i<pedido->n_transfs+4; i++) {
+                printf("%s ", pedido->transfs[i]);
+            }
+            putchar('\n');
+            printf("%d\n", pedido->n_transfs);
             //adicionar aos em processamento
             //avisar o cliente que foi adicionado aos em processamento
             executaPedido(pedido, pasta);

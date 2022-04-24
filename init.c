@@ -3,35 +3,37 @@
 
 
 int strArrayToString(int n, char *array[], char **dest, int mode) {
-    char *sep = " ", buffer[33];
-    int i,c,s;
-    snprintf(buffer, 33, "%d", n);
-    
-    for (i = 0, c = 0, s = -1; i<n; i++, s++) {
-        c += strlen(array[i]);
-    }
-    if (mode == 1) {
-        c += strlen(buffer);
-        s++;
-    }
-    (*dest) = malloc(c+s+1);
-    char *target = (*dest);
-    *target = '\0';
-    if (mode == 1) {
-        strcat(target, buffer);
-        target += strlen(buffer);
-        strcat(target, sep);
-        target++;
-    }
-    for(i = 0; i<n; i++) {
-        if (i > 0) {
+    if (n>0) {
+        char *sep = " ", buffer[33];
+        int i,c,s;
+        for (i = 0, c = 0, s = -1; i<n; i++, s++) {
+            c += strlen(array[i]);
+        }
+        if (mode == 1) {
+            snprintf(buffer, 33, "%d", n);
+            c += strlen(buffer);
+            s++;
+        }
+        (*dest) = malloc(c+s+1);
+        char *target = (*dest);
+        *target = '\0';
+        strcat(target, array[0]);
+        target += strlen(array[0]);
+        if (mode == 1) {
             strcat(target, sep);
             target++;
+            strcat(target, buffer);
+            target += strlen(buffer);
         }
-        strcat(target, array[i]);
-        target += strlen(array[i]);
+        for(i = 1; i<n; i++) {
+            strcat(target, sep);
+            target++;
+            strcat(target, array[i]);
+            target += strlen(array[i]);
+        }
+        return c+s+1;
     }
-    return c+s+1;
+    return 0;
 }
 
 int readConfig(int fd, HT *hash_table) {
