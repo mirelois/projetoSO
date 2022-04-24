@@ -40,12 +40,15 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
 }
 
 void deepFree(Pedido *dest) {
-    if (dest->hashtable)
+    if (dest->hashtable) {
         freeHT(dest->hashtable);
+    }
     if (dest->transfs) {
         int i;
+        
         for(i = 0; i<dest->n_transfs+4; i++) {
-            free(dest->transfs[i]);
+            if (dest->transfs[i] != NULL)
+                free(dest->transfs[i]);
         }
         free(dest->transfs);
     }
@@ -62,7 +65,8 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     printf("2\n");
     //segunda parte da string é o número de argumentos
     n = atoi(buffer);
-    (*dest)->transfs = malloc(n*sizeof(char*));
+    (*dest)->n_transfs = n-4;
+    (*dest)->transfs = calloc(n, sizeof(char*));
     (*dest)->transfs[0] = strdup("proc-file");
     
     for(; string[r] != '\0' && i<4; i++) {
@@ -96,8 +100,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
             return -1;
         }
     }
-
-    (*dest)->n_transfs = n-4;
     return 0;
 }
 
