@@ -23,9 +23,8 @@
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
     int max, curr;
-    printf("%s\n", transf);
     if (readHT(maxs, transf, &max) == -1) {
-        write(2, "Transformation not in config.", 31);
+        write(2, "Transformation not in config.", 30);
         return 1;
     }
     if (plusOneHT(h, transf, &curr) == -1) {
@@ -62,7 +61,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     //supor que tem a prioridade, in e out
     int r = 10, w, n, i = 1; //saltar o proc-file à frente
     StringToBuffer(r, string, buffer)
-    printf("2\n");
     //segunda parte da string é o número de argumentos
     n = atoi(buffer);
     (*dest)->n_transfs = n-4;
@@ -71,7 +69,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     
     for(; string[r] != '\0' && i<4; i++) {
         StringToBuffer(r, string, buffer)
-        printf("%s %d\n", buffer, strlen(buffer));
         //escrever o buffer para os transfs
         if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
             write(2, "Problem with memory.", 21);
@@ -83,7 +80,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     initHT((*dest)->hashtable, 13);
     for(; string[r] != '\0' && i < n; r++, i++) {
         StringToBuffer(r, string, buffer)
-        printf("%s %d\n", buffer, strlen(buffer));
         //escrever o buffer para os transfs
         if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
             write(2, "Problem with memory.", 21);
@@ -91,7 +87,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
         }
         //temos de ver os espaços, ir adicionando ao HT
         
-        printf(" lmao %s\n", (*dest)->transfs[i]);
         if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
             //pedido rejeitado
             return 1;
@@ -242,7 +237,6 @@ int executaPedido(Pedido *pedido, char *pasta) {
                 //prob avisa o servidor que avisa o cliente
             _exit(0);
         }
-        printf("dafuq\n");
         //fazer forks while houver transformações
         //fazemos 1º fork se houver transformação
         //E agora? Fazemos primeiro 1) e depois vê-se como os stores querem a cena avançada
@@ -254,7 +248,6 @@ int executaPedido(Pedido *pedido, char *pasta) {
     } else {
         int status;
         wait(&status);
-        printf("esperou e acabou\n");
         return 0;
         //não fazer nada de jeito ou um wait não bloqueante
         //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
@@ -272,20 +265,13 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
     int p = atoi(pedido->transfs[1]);
     new->next = NULL;
     new->pedido = pedido;
-    printf("%d\n", p);
     if (queue[p-1].end != NULL) {
         queue[p-1].end->next = new;
     }
     queue[p-1].end = new;
     
-    for (int i = 0; i<MAX_PRIORITY; i++) {
-        printf("mas então mas %d, %d, %d\n", i, queue[i-1].end, queue[i-1].start);
-    }
-    printf("%d\n", p);
     if (queue[p-1].start == NULL) {
-        printf("oi?\n");
         queue[p-1].start = new;
-
     }
     return 0;
 }
@@ -303,7 +289,6 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
                 c = 0;
             }
             if (max - c < new) {
-                printf("hello c:\n");
                 return 0;
             }
         }
@@ -319,13 +304,11 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     for (i = MAX_PRIORITY - 1; i>=0; i--) {
         for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
             pedido = (*nodo)->pedido;
-            printf("chegou\n");
             int l;
             if (l = isPedidoExec(pedido, maxs, curr)) {
                 (*nodo) = (*nodo)->next;
                 return pedido;
             }
-            printf("%d\n", l);
         }
     }
     return NULL;
@@ -399,7 +382,6 @@ int main(int argc, char const *argv[]) {
     } else if (strcmp(pipeParse, "proc-file") == 0) {
         //Leitura do pedido
         Pedido *pedido;
-        printf("1\n");
         if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
             //erro de execução
             return -1;
@@ -408,23 +390,15 @@ int main(int argc, char const *argv[]) {
             deepFree(pedido);
             //escrever de volta ao cliente que deu asneira
         }
-        printf("%d, %d\n", pendingQ[0].start, pendingQ[0].end);
         if (addPendingQueue(pedido, pendingQ)==-1) {
             
             return -1;
         }
-        printf("added pqueue\n");
         //executaPedido(pedido, pasta);
         //avisar o cliente que foi posto em pending
         
         pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
         if (pedido != NULL) {
-            printf("funciona pending\n");
-            for (int i = 0; i<pedido->n_transfs+4; i++) {
-                printf("%s ", pedido->transfs[i]);
-            }
-            putchar('\n');
-            printf("%d\n", pedido->n_transfs);
             //adicionar aos em processamento
             //avisar o cliente que foi adicionado aos em processamento
             executaPedido(pedido, pasta);
