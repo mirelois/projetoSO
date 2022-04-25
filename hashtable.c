@@ -177,7 +177,7 @@ int writeHT (HT *h, char key[], int value) {
  * @return posicao na tabela de onde foi lido o valor ou -1 caso a chave nao exista no dicionario
  */
 int readHT(HT *h, char key[], int* value){
-    int p , r = -1 , c = h->size, flg;
+    int p , r = -1 , c = h->size, flg = 1;
     for(p = hash(key,h->size); strcmp(key,(h->tbl)[p].key) && (c > 0) && (flg = strcmp(EMPTY,(h->tbl)[p].key)); c--){
         p = (p+1)%(h->size);
     }

@@ -183,7 +183,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     int ret = execl(buffer, buffer);
                     write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
-                default: 
+                default: ;
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
