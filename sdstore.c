@@ -14,7 +14,7 @@ int main(int argc, char const *argv[])
     //1+ -> procfile
     if (argc == 1) {
         write(1, "./sdstore status\n", 18);
-        write(1, "./sdstore proc-file priority input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 105);
+        write(1, "./sdstore proc-file <-p priority> input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 105);
         return 0;
     } else if (argc == 2 && strcmp(argv[1], "status") == 0) {
         //do status, pedir ao servidor o status das tasks em execução e dos limites
@@ -30,17 +30,21 @@ int main(int argc, char const *argv[])
             //literalmente só escrever no pipe...oq?
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
-        char *string;
-        int i, n;
-        n = atoi(argv[2]);
-        if (n < 1 || n > MAX_PRIORITY) {
-            write(2, "Missing priority.",18);
-            return -1;
+        char *string, prio[1] = "0";
+        int i = 2, n;
+        if (strcmp(argv[2], "-p") == 0) {
+            n = atoi(argv[3]);
+            if (n >= 0 && n < 5)
+                snprintf(prio, 1, "%c", 48+n);
+            i = 4;
         }
-        n = strArrayToString(argc-1, argv+1, &string, 1); //testar erro?
+
+        argv[i-2] = "proc-file";
+        argv[i-1] = prio;
+        n = strArrayToString(argc-i+2, argv+i-2, &string, 1); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
-        
+
         //vai ler e escrever 3 vezes
         int bytes_read;
         char buffer[32];

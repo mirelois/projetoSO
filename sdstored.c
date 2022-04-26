@@ -261,13 +261,13 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
     int p = atoi(pedido->transfs[1]);
     new->next = NULL;
     new->pedido = pedido;
-    if (queue[p-1].end != NULL) {
-        queue[p-1].end->next = new;
+    if (queue[p].end != NULL) {
+        queue[p].end->next = new;
     }
-    queue[p-1].end = new;
+    queue[p].end = new;
     
-    if (queue[p-1].start == NULL) {
-        queue[p-1].start = new;
+    if (queue[p].start == NULL) {
+        queue[p].start = new;
     }
     return 0;
 }
@@ -294,17 +294,16 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     //não funfa c:
-    int i;
+    int i = 0;
     LList **nodo;
     Pedido *pedido;
-    for (i = MAX_PRIORITY - 1; i>=0; i--) {
-        for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
-            pedido = (*nodo)->pedido;
-            int l;
-            if (l = isPedidoExec(pedido, maxs, curr)) {
-                (*nodo) = (*nodo)->next;
-                return pedido;
-            }
+    while (i <= MAX_PRIORITY && queue[i].start == NULL) i++;
+    for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
+        pedido = (*nodo)->pedido;
+        int l;
+        if (l = isPedidoExec(pedido, maxs, curr)) {
+            (*nodo) = (*nodo)->next;
+            return pedido;
         }
     }
     return NULL;
@@ -340,8 +339,8 @@ int main(int argc, char const *argv[]) {
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
     int i;
-    PendingQueue pendingQ[MAX_PRIORITY];
-    for (i = 0; i<MAX_PRIORITY; i++) {
+    PendingQueue pendingQ[MAX_PRIORITY+1];
+    for (i = 0; i<MAX_PRIORITY+1; i++) {
         pendingQ[i].end = NULL;
         pendingQ[i].start = NULL;
     }
