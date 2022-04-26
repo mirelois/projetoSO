@@ -111,17 +111,20 @@ int printHT(HT *h, int size) {
 
 int main(int argc, char *argv[])
 {
-    int i = atoi(argv[2]);
-    if (i == 0) {
-        strncpy(argv[0], argv[1], 10);
-        strncpy(argv[1], "1", 2);
-        i = 1;
-    } else if (i > 5 || i < 1) {
-        strncpy(argv[2], "1", 2);
-        i = 0;
-    }
-    char *dest;
-    strArrayToString(argc-1+i, argv+1-i, &dest, 0);
-    printf("%s\n", dest);
+    char *string, prio[2] = "0";
+        int i = 2, n;
+        if (strcmp(argv[2], "-p") == 0) {
+            n = atoi(argv[3]);
+            if (n > 0 && n <= 5)
+                prio[0] = '0'+n;
+            i = 4;
+        }
+
+        argv[i-2] = "proc-file";
+        argv[i-1] = prio;
+        n = strArrayToString(argc-i+2, argv+i-2, &string, 1); //testar erro?
+        //write(pipe, string, strlen(string));
+        printf("%s\n", string);
+        free(string);
     return 0;
 }

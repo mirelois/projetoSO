@@ -30,12 +30,12 @@ int main(int argc, char const *argv[])
             //literalmente só escrever no pipe...oq?
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
-        char *string, prio[1] = "0";
+        char *string, prio[2] = "0";
         int i = 2, n;
         if (strcmp(argv[2], "-p") == 0) {
             n = atoi(argv[3]);
             if (n >= 0 && n < 5)
-                snprintf(prio, 1, "%c", 48+n);
+                prio[0] = '0'+n;
             i = 4;
         }
 
