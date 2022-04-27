@@ -12,7 +12,14 @@ struct pair {
     int value;
 };
     
+struct aux_array {
+    int *array;
+    int last;
+    int aux_array_flag;
+};
+    
 typedef struct {
+    struct aux_array aux_array;
     int   size;
     int   used;
     struct pair *tbl;
@@ -23,7 +30,7 @@ int hash(char key[], int size);
 
 void freeHT(HT *h);
 
-int initHT (HT *h, int size);
+int initHT (HT *h, int size, int aux_array_flag);
 
 int plusOneHT(HT *h, char key[], int* value);
 

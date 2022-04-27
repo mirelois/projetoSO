@@ -29,7 +29,16 @@ int hash(char key[], int size) {
  * @param size tamanho do dicionario
  * @return 0 se o dicionario for inicializado corretamente e -1 caso contrario
  */
-int initHT(HT *h, int size) {
+int initHT(HT *h, int size, int aux_array_flag) {
+
+    if (aux_array_flag) {
+        h->aux_array.array = malloc(size*sizeof(int));
+        h->aux_array.last = -1;
+        h->aux_array.aux_array_flag = aux_array_flag;
+    }else {
+        h->aux_array.array = NULL;
+    }
+
     h->tbl = calloc(size, sizeof(struct pair));
 
     if(h->tbl == NULL){
@@ -94,7 +103,6 @@ int isprime(int p){
     return r;
 }
 
-
 /**
  * @brief funcao auxiliar do writeHT 
  * 
@@ -107,16 +115,27 @@ int isprime(int p){
 int writeHTaux (HT *h, char key[], int value) {
 
     int p= hash(key, h->size);
+    int flag = 1;
 
-    for(p; !FREE(h,p); p = (p+1)%(h->size));
+    for(p; !FREE(h,p) && (flag = strcmp(key,(h->tbl)[p].key)); p = (p+1)%(h->size));
+    if (!flag) {
+        (h->tbl)[p].value = value;
+    }else {
+
+    if (h->aux_array.aux_array_flag) {
+        h->aux_array.array[p] = h->aux_array.last;
+        h->aux_array.last = p;
+    }
+
+    
 
     strcpy((h->tbl)[p].key, key);
     (h->tbl)[p].value = value;
     h->used++;
+    }
 
     return p;
 }
-
 
 /**
  * @brief escreve um par chave valor no dicionario 
@@ -133,7 +152,7 @@ int writeHTaux (HT *h, char key[], int value) {
  */
 int writeHT (HT *h, char key[], int value) {
 
-    float charge = ((float)(h->used))/(h->size);
+    float charge = (h->used + 1.0)/(h->size);
 
     if(charge >= MAX_CHARGE) {
 
@@ -147,19 +166,21 @@ int writeHT (HT *h, char key[], int value) {
 
         for(new_size = (h->size)*2; !isprime(new_size); new_size++);
 
-        if(initHT(new_h, new_size+1) == -1){
+        if(initHT(new_h, new_size+1, h->aux_array.aux_array_flag) == -1){
             return -1;
         }
 
         for(int i = 0; i < h->size; i++) {
-            
-            writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
-            
+            //printf("\n%s\n", h->tbl[i].key);
+            if (!FREE(h,i)){
+                writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+            }
         }
-
-        *h = *new_h;
-
-        freeHT(new_h);
+        
+        free(h->tbl);
+        h->tbl = new_h->tbl;
+        h->size = new_h->size;
+        h->used = new_h->used;
         
     }
 
