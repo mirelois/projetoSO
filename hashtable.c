@@ -32,7 +32,9 @@ int hash(char key[], int size) {
 int initHT(HT *h, int size, int aux_array_flag) {
 
     if (aux_array_flag) {
-        h->aux_array.array = malloc(size*sizeof(int));
+        if((h->aux_array.array = malloc(size*sizeof(int))) == NULL) {
+            return -1;
+        };
         h->aux_array.last = -1;
         h->aux_array.aux_array_flag = aux_array_flag;
     }else {
