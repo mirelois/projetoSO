@@ -21,84 +21,69 @@ typedef struct pedido {
     HT *hashtable;
 }Pedido;
 
-int createPedido(char *string, Pedido **dest, HT *maxs) {
-    *dest = malloc(sizeof(Pedido));
-    HT *h = malloc(sizeof(HT));
-    initHT(h, 13);
-    char buffer[32];
-    //supor que tem a prioridade, in e out
-    int r = 0, w, n, i = 0;
-    StringToBuffer(r, string, buffer)
-    n = atoi(buffer);
-    (*dest)->transfs = malloc(n*sizeof(char*));
-    for(; string[r] != '\0' && i<3; n--) {
-        StringToBuffer(r, string, buffer)
-        //escrever o buffer para os transfs
-        if(((*dest)->transfs[i++] = strdup(buffer)) == NULL) {
-            write(2, "Problem with memory.", 21);
-            return -1;
+int strArrayToString(int n, char *array[], char **dest, int mode) {
+    if (n>0) {
+        char *sep = " ", buffer[33];
+        int i,c,s;
+        for (i = 0, c = 0, s = -1; i<n; i++, s++) {
+            c += strlen(array[i]);
         }
+        if (mode == 1) {
+            snprintf(buffer, 33, "%d", n);
+            c += strlen(buffer);
+            s++;
+        }
+        (*dest) = malloc(c+s+1);
+        char *target = (*dest);
+        *target = '\0';
+        strcat(target, array[0]);
+        target += strlen(array[0]);
+        if (mode == 1) {
+            strcat(target, sep);
+            target++;
+            strcat(target, buffer);
+            target += strlen(buffer);
+        }
+        for(i = 1; i<n; i++) {
+            strcat(target, sep);
+            target++;
+            strcat(target, array[i]);
+            target += strlen(array[i]);
+        }
+        return c+s+1;
     }
-    if (n < 0) {
-        //já sabemos que tem prioridade porque o cliente já viu
-        write(2, "Problem finding input/output files.", 36);
-        return -1;
-    }
-    for(; string[r] != '\0' && i < n+3; r++) {
-        StringToBuffer(r, string, buffer)
-        //escrever o buffer para os transfs
-        (*dest)->transfs[i++] = strdup(buffer);
-        //temos de ver os espaços, ir adicionando ao HT
-        int max, curr;
-        
-        if (readHT(maxs, buffer, &max) == -1) {
-            printf("%s %d\n", buffer, max);
-            write(2, "Transformation not in config.", 31);
-            return -1;
-        }
-        if (plusOneHT(h, buffer, &curr) == -1) {
-            writeHT(h, buffer, 1);
-            curr = 1;
-        }
-        if (curr > max) {
-            //rejeitar o pedido
-        }
-    }
-    (*dest)->hashtable = h;
-    (*dest)->n_transfs = n;
     return 0;
 }
 
-int strArrayToString(int n, char *array[], char **dest, int mode) {
-    //mode: 0 or 1
-    char *sep = " ", buffer[33];
-    int i,c,s;
-    itoa(n, buffer, 10);
+int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
+    *dest = malloc(sizeof(Pedido));
+    (*dest)->id = n_pedido;
+    char buffer[32];
+    //supor que tem a prioridade, in e out
+    int r = 0, w, n, i = 0, c = 0; //saltar o proc-file à frente
+    //segunda parte da string é o número de argumentos
+    //eu sei que recebi pelo menos 5 coisas, com o proc-file
     
-    for (i = 0, c = 0, s = -1; i<n; i++, s++) {
-        c += strlen(array[i]);
+    for(; string[r] != '\0' && i<4; i++) {
+        for (; string[r] != ' '; r++);
+        r++;
     }
-    if (mode == 1) {
-        c += strlen(buffer);
-        s++;
-    }
-    (*dest) = malloc(c+s+1);
-    char *target = (*dest);
-    *target = '\0';
-    if (mode == 1) {
-        strcat(target, buffer);
-        target += strlen(buffer);
-        strcat(target, sep);
-        target++;
-    }
-    for(i = 0; i<n; i++) {
-        if (i > 0) {
-            strcat(target, sep);
-            target++;
+
+    (*dest)->hashtable = malloc(sizeof(HT));
+    initHT((*dest)->hashtable, 13);
+    for(; string[r] != '\0'; i++) {
+        StringToBuffer(r, string, buffer)
+        //temos de ver os espaços, ir adicionando ao HT
+        if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
+            //pedido rejeitado
+            return 1;
+        } else if (w == -1) {
+            //erro de execução
+            return -1;
         }
-        strcat(target, array[i]);
-        target += strlen(array[i]);
     }
+
+    (*dest)->pedido = strdup(string);
     return 0;
 }
 
@@ -111,20 +96,6 @@ int printHT(HT *h, int size) {
 
 int main(int argc, char *argv[])
 {
-    char *string, prio[2] = "0";
-        int i = 2, n;
-        if (strcmp(argv[2], "-p") == 0) {
-            n = atoi(argv[3]);
-            if (n > 0 && n <= 5)
-                prio[0] = '0'+n;
-            i = 4;
-        }
-
-        argv[i-2] = "proc-file";
-        argv[i-1] = prio;
-        n = strArrayToString(argc-i+2, argv+i-2, &string, 1); //testar erro?
-        //write(pipe, string, strlen(string));
-        printf("%s\n", string);
-        free(string);
+    
     return 0;
 }

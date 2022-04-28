@@ -41,7 +41,7 @@ int main(int argc, char const *argv[])
 
         argv[i-2] = "proc-file";
         argv[i-1] = prio;
-        n = strArrayToString(argc-i+2, argv+i-2, &string, 1); //testar erro?
+        n = strArrayToString(argc-i+2, argv+i-2, &string); //testar erro?
         //write(pipe, string, strlen(string));
         free(string);
 

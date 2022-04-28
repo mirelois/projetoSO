@@ -42,15 +42,7 @@ void deepFree(Pedido *dest) {
     if (dest->hashtable) {
         freeHT(dest->hashtable);
     }
-    if (dest->transfs) {
-        int i;
-        
-        for(i = 0; i<dest->n_transfs+4; i++) {
-            if (dest->transfs[i] != NULL)
-                free(dest->transfs[i]);
-        }
-        free(dest->transfs);
-    }
+    free(dest->pedido);
     free(dest);
 }
 
@@ -59,34 +51,20 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     (*dest)->id = n_pedido;
     char buffer[32];
     //supor que tem a prioridade, in e out
-    int r = 10, w, n, i = 1; //saltar o proc-file à frente
-    StringToBuffer(r, string, buffer)
+    int r = 0, w, n, i = 0, c = 0; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
-    n = atoi(buffer);
-    (*dest)->n_transfs = n-4;
-    (*dest)->transfs = calloc(n, sizeof(char*));
-    (*dest)->transfs[0] = strdup("proc-file");
+    //eu sei que recebi pelo menos 5 coisas, com o proc-file
     
     for(; string[r] != '\0' && i<4; i++) {
-        StringToBuffer(r, string, buffer)
-        //escrever o buffer para os transfs
-        if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
-            write(2, "Problem with memory.", 21);
-            return -1;
-        }
+        for (; string[r] != ' '; r++);
+        r++;
     }
 
     (*dest)->hashtable = malloc(sizeof(HT));
     initHT((*dest)->hashtable, 13);
-    for(; string[r] != '\0' && i < n; r++, i++) {
+    for(; string[r] != '\0'; i++) {
         StringToBuffer(r, string, buffer)
-        //escrever o buffer para os transfs
-        if(((*dest)->transfs[i] = strdup(buffer)) == NULL) {
-            write(2, "Problem with memory.", 21);
-            return -1;
-        }
         //temos de ver os espaços, ir adicionando ao HT
-        
         if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
             //pedido rejeitado
             return 1;
@@ -95,6 +73,8 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
             return -1;
         }
     }
+
+    (*dest)->pedido = strdup(string);
     return 0;
 }
 

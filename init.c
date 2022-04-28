@@ -2,29 +2,18 @@
 #include "includes.h"
 
 
-int strArrayToString(int n, char *array[], char **dest, int mode) {
+int strArrayToString(int n, char *array[], char **dest) {
     if (n>0) {
         char *sep = " ", buffer[33];
         int i,c,s;
         for (i = 0, c = 0, s = -1; i<n; i++, s++) {
             c += strlen(array[i]);
         }
-        if (mode == 1) {
-            snprintf(buffer, 33, "%d", n);
-            c += strlen(buffer);
-            s++;
-        }
         (*dest) = malloc(c+s+1);
         char *target = (*dest);
         *target = '\0';
         strcat(target, array[0]);
         target += strlen(array[0]);
-        if (mode == 1) {
-            strcat(target, sep);
-            target++;
-            strcat(target, buffer);
-            target += strlen(buffer);
-        }
         for(i = 1; i<n; i++) {
             strcat(target, sep);
             target++;
