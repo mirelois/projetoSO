@@ -60,6 +60,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
         r++;
     }
 
+    (*dest)->pedido = strdup(string+r);
     (*dest)->hashtable = malloc(sizeof(HT));
     initHT((*dest)->hashtable, 13);
     for(; string[r] != '\0'; i++) {
@@ -74,7 +75,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
         }
     }
 
-    (*dest)->pedido = strdup(string);
+    
     return 0;
 }
 
@@ -238,7 +239,7 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
         write(2, "Failed to create LList", 23);
         return -1;
     }
-    int p = atoi(pedido->transfs[1]);
+    //int p = atoi(pedido->transfs[1]);
     new->next = NULL;
     new->pedido = pedido;
     if (queue[p].end != NULL) {

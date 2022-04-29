@@ -96,6 +96,7 @@ int printHT(HT *h, int size) {
 
 int main(int argc, char *argv[])
 {
+    int *array[2];
     
     return 0;
 }
