@@ -38,6 +38,11 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
     return 0;
 }
 
+/**
+ * @brief Libertar a memória da estrutura Pedido.
+ * Utiliza a função freeHT definida para libertar hashtables.
+ * @param dest Pedido a se libertar.
+ */
 void deepFree(Pedido *dest) {
     if (dest->hashtable) {
         freeHT(dest->hashtable);
@@ -49,10 +54,25 @@ void deepFree(Pedido *dest) {
     free(dest);
 }
 
+/**
+ * @brief Criar um objeto do tipo Pedido
+ * 
+ * Recebe uma string do servidor para ser colocado num Pedido.
+ * Salta o indicador "proc-file".
+ * Coloca no prio a string com a prioridade; no in a string com o nome do ficheiro de input; no out a string com o nome do ficheiro de output.
+ * Cria o dicionário a ser usada dentro do Pedido para guardar quantas transformações de cada tipo tem.
+ * Para cada pedido na string, acrescenta 1 à sua entrada do dicionário, recusando o pedido se exceder o máximo.
+ * 
+ * @param string Input vindo do servidor, para ser dividido para as parcelas do Pedido.
+ * @param dest Local da memória onde alocar o Pedido.
+ * @param maxs Dicionário dos valores máximos das Transformações.
+ * @param n_pedido Número do pedido.
+ * @return int Mensagens de erro.
+ */
 int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     *dest = malloc(sizeof(Pedido));
     (*dest)->id = n_pedido;
-    char buffer[33];
+    char buffer[32];
     //supor que tem a prioridade, in e out
     int r = 10, w, n, i; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
@@ -71,6 +91,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     (*dest)->hashtable = malloc(sizeof(HT));
     initHT((*dest)->hashtable, 13);
     for(i = 0; string[r] != '\0'; i++) {
+        w = 0;
         StringToBuffer(r, w, string, buffer)
         //temos de ver os espaços, ir adicionando ao HT
         if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
@@ -240,13 +261,20 @@ int executaPedido(Pedido *pedido, char *pasta) {
     }
 }
 
+/**
+ * @brief Adiciona um pedido à PendingQueue
+ * 
+ * @param pedido Pedido a adicionar
+ * @param queue Queue onde adicionar
+ * @return int Mensagem de erro
+ */
 int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
     LList *new;
     if ((new = malloc(sizeof(LList))) == NULL) {
         write(2, "Failed to create LList", 23);
         return -1;
     }
-    //int p = atoi(pedido->transfs[1]);
+    int p = atoi(pedido->prio);
     new->next = NULL;
     new->pedido = pedido;
     if (queue[p].end != NULL) {
@@ -260,6 +288,16 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
     return 0;
 }
 
+/**
+ * @brief Função para determinar se um pedido é executável
+ * 
+ * Verifica o Dicionário dos máximos e o dos atuais para saber se se pode executar o dado Pedido.
+ * 
+ * @param pedido Pedido a ver se se pode executar.
+ * @param maxs Dicionário dos máximos.
+ * @param curr Dicionário dos atuais.
+ * @return int Inteiro tratado como booleano.
+ */
 int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     char transf[MAX_TRANSF_SIZE];
     int i, s, new, c, max;
@@ -282,16 +320,18 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     //não funfa c:
-    int i = 0;
+    int i = MAX_TRANSF_SIZE;
     LList **nodo;
     Pedido *pedido;
-    while (i <= MAX_PRIORITY && queue[i].start == NULL) i++;
-    for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
-        pedido = (*nodo)->pedido;
-        int l;
-        if (l = isPedidoExec(pedido, maxs, curr)) {
-            (*nodo) = (*nodo)->next;
-            return pedido;
+    while (i >= 0 && queue[i].start == NULL) i--;
+    if (i >= 0) {
+        for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
+            pedido = (*nodo)->pedido;
+            int l;
+            if (l = isPedidoExec(pedido, maxs, curr)) {
+                (*nodo) = (*nodo)->next;
+                return pedido;
+            }
         }
     }
     return NULL;
