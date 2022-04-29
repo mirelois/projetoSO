@@ -107,13 +107,13 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     return 0;
 }
 
-void escolheEntradaSaidaOneTransf(Pedido *pedido){
+void escolheEntradaSaidaOneTransf(char *in, char *out){
     int fd_i, fd_o;
-    if((fd_i = open(pedido->transfs[2], O_RDONLY)) == -1){
+    if((fd_i = open(in, O_RDONLY)) == -1){
         write(2,"Failed to open file in", 23);
         _exit(-1);
     }
-    if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+    if((fd_o = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
         write(2, "Failed to open file out", 24);
         _exit(-1);
     } //pôr if's à volta dos opens (já pus -- carlos)
@@ -129,7 +129,7 @@ void escolheEntradaSaidaOneTransf(Pedido *pedido){
     close(fd_o);
 }
 
-void escolheEntradaSaida(Pedido *pedido, int i, int **p){
+void escolheEntradaSaida(char *in, char *out, int i, int **p){
     if(i == pedido->n_transfs-1){
         if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input", 24);
@@ -137,7 +137,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int **p){
         }
         close(p[i-1][0]);
         int fd_o;
-        if((fd_o = open(pedido->transfs[3], O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+        if((fd_o = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
             write(2, "Failed to open file out", 24);
             _exit(-1);
         }
@@ -147,6 +147,16 @@ void escolheEntradaSaida(Pedido *pedido, int i, int **p){
         }
         close(fd_o);
     }else if(i == 0){
+        int fd_i;
+        if((fd_i = open(in, O_RDONLY)) == -1){
+            write(2, "Failed to open file in", 23);
+            _exit(-1);
+        }
+        if((dup2(fd_i, 1)) == -1){
+            write(2, "Failed to dup the input", 24);
+            _exit(-1);
+        }
+        close(fd_i);
         close(p[i][0]);
         if((dup2(p[i][1], 1)) == -1){
             write(2, "Failed to dup the output", 25);
@@ -178,17 +188,23 @@ int executaPedido(Pedido *pedido, char *pasta) {
         //se não conseguires dar fork ao manager?
         write(2,"Failed Fork to Manager", 23);
     } else if (manager == 0) {
+        int r=0, w, tamanhoinicial = strlen(pasta);
+        char buffer[tamanhoinicial + 33];
+        for(w=0; pasta[w]!='\0'; w++)
+            buffer[w] = pasta[w];
+        buffer[w++] = '/';
+
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
-        
         if (pedido->n_transfs == 1) {
-            char buffer[strlen(pasta) + strlen(pedido->transfs[4]) + 1];
+            //char buffer[strlen(pasta) + w + 1];
             switch(fork()){
                 case -1:
                     write(2, "Failed Fork Manager to Child", 29);
                     _exit(-1);
                 case 0:
-                    escolheEntradaSaidaOneTransf(pedido);
-                    sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
+                    escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
+                    //sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
+                    StringToBuffer(r, w, pedido->pedido, buffer);
                     int ret = execl(buffer, buffer);
                     write(2, "Failed Exec Manager Child", 26);
                     _exit(ret);
@@ -212,14 +228,15 @@ int executaPedido(Pedido *pedido, char *pasta) {
                         write(2, "Failed pipe", 12);
                         _exit(-1);
                     }
-                char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
+                // char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
                 switch(fork()){
                     case -1:
                         write(2, "Failed Fork Manager to Child", 29);
                         _exit(-1);
                     case 0:
-                        escolheEntradaSaida(pedido, i, p);
-                        sprintf(buffer, "%s/%s", pasta, pedido->transfs[i+4]);
+                        w = tamanhoinicial;
+                        StringToBuffer(r, w, pedido->pedido, buffer);
+                        escolheEntradaSaida(pedido->in, pedido->out, i, p);
                         int ret = execl(buffer, buffer);
                         write(2, "Failed Exec Manager Child", 26);
                         _exit(ret);
