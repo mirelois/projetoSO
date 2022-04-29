@@ -1,7 +1,7 @@
 #include "sdstored.h"
 
-#define StringToBuffer(r, string, buffer) \
-    for (w = 0; string[r] != '\0' && string[r] != ' ' && string[r] != '\n'; w++, r++) {\
+#define StringToBuffer(r, w, string, buffer) \
+    for (; string[r] != '\0' && string[r] != ' ' && string[r] != '\n'; w++, r++) {\
        buffer[w] = string[r];\
     }\
     buffer[w] = '\0';\
@@ -42,6 +42,9 @@ void deepFree(Pedido *dest) {
     if (dest->hashtable) {
         freeHT(dest->hashtable);
     }
+    free(dest->in);
+    free(dest->out);
+    free(dest->prio);
     free(dest->pedido);
     free(dest);
 }
@@ -49,22 +52,26 @@ void deepFree(Pedido *dest) {
 int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     *dest = malloc(sizeof(Pedido));
     (*dest)->id = n_pedido;
-    char buffer[32];
+    char buffer[33];
     //supor que tem a prioridade, in e out
-    int r = 0, w, n, i = 0, c = 0; //saltar o proc-file à frente
+    int r = 10, w, n, i; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
-    //eu sei que recebi pelo menos 5 coisas, com o proc-file
-    
-    for(; string[r] != '\0' && i<4; i++) {
-        for (; string[r] != ' '; r++);
-        r++;
-    }
+    //eu sei que recebi pelo menos 5 coisas, com o proc-file   
+    w = 0;
+    StringToBuffer(r, w, string, buffer)
+    (*dest)->prio = strdup(buffer);
+    w = 0;
+    StringToBuffer(r, w, string, buffer)
+    (*dest)->in = strdup(buffer);
+    w = 0;
+    StringToBuffer(r, w, string, buffer)
+    (*dest)->out = strdup(buffer);
 
     (*dest)->pedido = strdup(string+r);
     (*dest)->hashtable = malloc(sizeof(HT));
     initHT((*dest)->hashtable, 13);
-    for(; string[r] != '\0'; i++) {
-        StringToBuffer(r, string, buffer)
+    for(i = 0; string[r] != '\0'; i++) {
+        StringToBuffer(r, w, string, buffer)
         //temos de ver os espaços, ir adicionando ao HT
         if ((w = addTransfHT(buffer, (*dest)->hashtable, maxs)) == 1) {
             //pedido rejeitado
@@ -74,7 +81,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
             return -1;
         }
     }
-
+    (*dest)->n_transfs = i;
     
     return 0;
 }
@@ -319,27 +326,28 @@ int main(int argc, char const *argv[]) {
     }
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
-    int i;
+    int r;
     PendingQueue pendingQ[MAX_PRIORITY+1];
-    for (i = 0; i<MAX_PRIORITY+1; i++) {
-        pendingQ[i].end = NULL;
-        pendingQ[i].start = NULL;
+    for (r = 0; i<MAX_PRIORITY+1; r++) {
+        pendingQ[r].end = NULL;
+        pendingQ[r].start = NULL;
     }
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     char pipeRead[MAX_BUFF];
     read(0, pipeRead, MAX_BUFF);
     //lembrar de tirar
-    for (int i = 0; i<MAX_BUFF; i++) {
-        if (pipeRead[i] == EOF) {
-            pipeRead[i] = '\0';
+    for (r = 0; i<MAX_BUFF; i++) {
+        if (pipeRead[r] == EOF) {
+            pipeRead[r] = '\0';
         }
     }
     //loop de read do pipe com nome para buffer
 
     char pipeParse[32];
     int w, n_pedido = 0;
-    i = 0;
-    StringToBuffer(i, pipeRead, pipeParse)
+    r = 0;
+    w = 0;
+    StringToBuffer(r, w, pipeRead, pipeParse)
     if (strcmp(pipeParse, "status") == 0) {
         //não esquecer de fazer o status
         //tem diferente input
