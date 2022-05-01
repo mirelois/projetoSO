@@ -90,7 +90,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
 
     (*dest)->pedido = strdup(string+r);
     (*dest)->hashtable = malloc(sizeof(HT));
-    initHT((*dest)->hashtable, 13);
+    initHT((*dest)->hashtable, 13, 0);
     for(i = 0; string[r] != '\0'; i++) {
         w = 0;
         StringToBuffer(r, w, string, buffer)
@@ -397,7 +397,7 @@ int main(int argc, char const *argv[]) {
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
     
     HT maxs;
-    if (initHT(&maxs, INIT_DICT_SIZE) == -1) {
+    if (initHT(&maxs, INIT_DICT_SIZE, 1) == -1) {
         write(2, "No space for Hashtable", 23);
     }
     if (readConfig(fdConfig, &maxs) == -1) {
@@ -406,7 +406,7 @@ int main(int argc, char const *argv[]) {
 
     //fix manhoso
     HT curr;
-    if (initHT(&curr, INIT_DICT_SIZE) == -1) {
+    if (initHT(&curr, INIT_DICT_SIZE, 1) == -1) {
         write(2, "No space for Hashtable", 23);
     }
     //todo preencher o dicionário com 1º argumento
