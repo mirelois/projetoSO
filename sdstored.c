@@ -129,7 +129,7 @@ void escolheEntradaSaidaOneTransf(char *in, char *out){
     close(fd_o);
 }
 
-void escolheEntradaSaida(char *in, char *out, int i, int **p){
+void escolheEntradaSaida(Pedido *pedido, int i, int **p){
     if(i == pedido->n_transfs-1){
         if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input", 24);
@@ -137,7 +137,7 @@ void escolheEntradaSaida(char *in, char *out, int i, int **p){
         }
         close(p[i-1][0]);
         int fd_o;
-        if((fd_o = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+        if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
             write(2, "Failed to open file out", 24);
             _exit(-1);
         }
@@ -148,7 +148,7 @@ void escolheEntradaSaida(char *in, char *out, int i, int **p){
         close(fd_o);
     }else if(i == 0){
         int fd_i;
-        if((fd_i = open(in, O_RDONLY)) == -1){
+        if((fd_i = open(pedido->in, O_RDONLY)) == -1){
             write(2, "Failed to open file in", 23);
             _exit(-1);
         }
@@ -236,7 +236,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
                     case 0:
                         w = tamanhoinicial;
                         StringToBuffer(r, w, pedido->pedido, buffer);
-                        escolheEntradaSaida(pedido->in, pedido->out, i, p);
+                        escolheEntradaSaida(pedido, i, p);
                         int ret = execl(buffer, buffer);
                         write(2, "Failed Exec Manager Child", 26);
                         _exit(ret);
