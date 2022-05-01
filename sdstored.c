@@ -179,12 +179,12 @@ void escolheEntradaSaida(Pedido *pedido, int i, int **p){
     }
 }
 
-int executaPedido(Pedido *pedido, char *pasta) {
+pid_t executaPedido(Pedido *pedido, char *pasta) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
         //importa a função? vai copiar o processo inteiro?
-    int manager;
+    pid_t manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
         write(2,"Failed Fork to Manager", 23);
@@ -268,15 +268,17 @@ int executaPedido(Pedido *pedido, char *pasta) {
             //2) fazemos write para um pipe (saber o tamanho) e fazer dup do pipe para o stdin
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
-    } else {
-        int status;
-        wait(&status);
-        return manager;
-        //não fazer nada de jeito ou um wait não bloqueante
-        //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
-        //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
-        //o manager também pode logo mandar o aviso ao cliente de alguma maneira
-    }
+    }// else {
+     //   int status;
+     //   wait(&status);
+     //   return 0;
+     //   
+     //   //não fazer nada de jeito ou um wait não bloqueante
+     //   //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
+     //   //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
+     //   //o manager também pode logo mandar o aviso ao cliente de alguma maneira
+    //}
+    return manager;
 }
 
 /**
