@@ -4,6 +4,15 @@
 
 #include "hashtable.h"
 
+/**
+ * @brief funcao de hash
+ * 
+ * soma o valor de ascii de todos os caracteres de uma string
+ * 
+ * @param key string a qual a funçao sera aplicada
+ * @param size tamanho do dicionario
+ * @return 
+ */
 int hash(char key[], int size) {
     int ret = 0;
     for(int i =0; key[i] != '\0'; i++){
@@ -12,17 +21,49 @@ int hash(char key[], int size) {
     return ret%size;
 }
 
+/**
+ * @brief inicializa um dicionario
+ * 
+ * 
+ * @param h pointer de um dicionario a ser inicializado
+ * @param size tamanho do dicionario
+ * @return 0 se o dicionario for inicializado corretamente e -1 caso contrario
+ */
+int initHT(HT *h, int size, int aux_array_flag) {
+    h->aux_array.aux_array_flag = aux_array_flag;
+    if (aux_array_flag) {
+        if((h->aux_array.array = malloc(size*sizeof(int))) == NULL) {
+            return -1;
+        };
+        h->aux_array.last = -1;
+    }else {
+        h->aux_array.array = NULL;
+    }
 
-void initHT(HT *h, int size) {
     h->tbl = calloc(size, sizeof(struct pair));
+
+    if(h->tbl == NULL){
+        return -1;
+    }
+
     h->size = size;
     h->used = 0;
     for (int i=0; i<size; i++) {
         strcpy(h->tbl[i].key, EMPTY);
         h->tbl[i].value = -1;
     }
+    return 0;
 }
 
+/**
+ * @brief incrementa o valor associado a uma chave por um 
+ * 
+ * 
+ * @param h pointer de um dicionario onde atualizar o valor
+ * @param key chave cujo valor associado sera incrementado
+ * @param value pointer de um valor onde guardar o valor incrementado
+ * @return posicao onde o valor foi incrementado ou -1 de falhar
+ */
 int plusOneHT(HT *h, char key[], int *value) {
 
     int x;
@@ -34,92 +75,151 @@ int plusOneHT(HT *h, char key[], int *value) {
     return p;
 }
 
-/*
-int freeHT(HT *h, int k) {
-    
-    return 
+/**
+ * @brief liberta a memoria de um dicionario 
+ * 
+ * 
+ * @param h pointer de um dicionario a libertar
+ * @return 0 se p nao e primo 1 caso contrario
+ */
+void freeHT(HT *h) {
+    free(h->tbl);
+    free(h);
 }
-*/
 
+/**
+ * @brief verifica se um numero é primo 
+ * 
+ * 
+ * @param p valor a testar
+ * @return 0 se p nao e primo 1 caso contrario
+ */
 int isprime(int p){
     int i , r = 0;
     for(i = 2 ; i < p/2 ; i++){
-        if(p%i == 0){r = 1;}
+        if(p%i == 0) {
+            r = 1;
+        }
     }
     return r;
 }
 
-
-//assume que ha espaço
-//nao é dinamico
+/**
+ * @brief funcao auxiliar do writeHT 
+ * 
+ * 
+ * @param h pointer para o dicionario onde escrever
+ * @param key chave a colocar no dicionario
+ * @param value valor a associar com a chave no dicionario
+ * @return posicao onde escreveu
+ */
 int writeHTaux (HT *h, char key[], int value) {
 
     int p= hash(key, h->size);
+    int flag = 1;
+    
+    for(p; !FREE(h,p) && (flag = strcmp(key,(h->tbl)[p].key)); p = (p+1)%(h->size));
+    
+    if (!flag) {
+        (h->tbl)[p].value = value;
+    }else {
 
-    for(p; !FREE(p); p = (p+1)%(h->size));
+    if (h->aux_array.aux_array_flag) {
+        h->aux_array.array[p] = h->aux_array.last;
+        h->aux_array.last = p;
+    }
+
+    
 
     strcpy((h->tbl)[p].key, key);
     (h->tbl)[p].value = value;
     h->used++;
+    }
 
     return p;
 }
 
+/**
+ * @brief escreve um par chave valor no dicionario 
+ * 
+ * quando a carga passa de MAX_CHARGE o tamanho do 
+ * dicionario é aumentado para o menor numero primo maior do que o dobro do tamanho atual
+ * 
+ * assume que chave nao ocorre no dicionario
+ * 
+ * @param h pointer para o dicionario onde escrever
+ * @param key chave a colocar no dicionario
+ * @param value valor a associar com a chave no dicionario
+ * @return posiçao onde colocou o par ou -1 se falhar
+ */
 int writeHT (HT *h, char key[], int value) {
-
-    writeHTaux(h, key, value);
-
-    float charge = ((float)(h->used))/(h->size);
-
+    
+    float charge = (h->used + 1.0)/(h->size);
+    
     if(charge >= MAX_CHARGE) {
-
+            
         HT *new_h = malloc(sizeof(HT));
-
-        int new_size;
-
-        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
-
-        initHT(new_h, new_size+1);
-
-        for(int i = 0; i < h->size; i++) {
-            
-            writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
-            
-        }
-
-
-        *h = *new_h;
-
-        free(new_h);//maybe not enough
         
-        return 0;
+        if(new_h == NULL){
+            return -1;
+        }
+        
+        int new_size;
+        
+        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
+        
+        if(initHT(new_h, new_size+1, h->aux_array.aux_array_flag) == -1){
+            return -1;
+        }
+        
+        for(int i = 0; i < h->size; i++) {
+            //printf("\n%s\n", h->tbl[i].key);
+            if (!FREE(h,i)){
+                writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+            }
+        }
+        
+        free(h->tbl);
+        h->tbl = new_h->tbl;
+        h->size = new_h->size;
+        h->used = new_h->used;
+        
     }
 
+    return writeHTaux(h, key, value);
 }
 
-
-
-/*
-int writeHT(HT *h, char key[], int value){
-    HT new_h;
-    if(((h->used)/(h->size)) <= 0.80){
-
-    }
-}
-*/
-
+/**
+ * @brief lê o valor associado a uma chave
+ * 
+ * assume que chave so aparece uma ves no dicionario
+ * 
+ * @param h pointer para o dicionario de onde ler
+ * @param key chave
+ * @param value pointer onde é colocado o valor associado a chave
+ * @return posicao na tabela de onde foi lido o valor ou -1 caso a chave nao exista no dicionario
+ */
 int readHT(HT *h, char key[], int* value){
-    int p , r = -1 , c = h->size, flg;
+    int p , r = -1 , c = h->size, flg = 1;
     for(p = hash(key,h->size); strcmp(key,(h->tbl)[p].key) && (c > 0) && (flg = strcmp(EMPTY,(h->tbl)[p].key)); c--){
         p = (p+1)%(h->size);
     }
-    if(c != 0 && !flg){
+    if(c != 0 && flg){
         r = p;
         *value = (h->tbl)[p].value;
     }
     return r;
 }
 
+/**
+ * @brief subtitui a chave por DELETED e coloca o valor guardado a -1
+ * 
+ * assume que chave so aparece uma ves no dicionario
+ * 
+ * @param h pointer para o dicionario em que sera eliminado o valor
+ * @param key chave a eliminar
+ * @return posicao na tabela de onde foi eliminada a chave ou -1 caso a chave nao exista no dicionario
+ */
 int deleteHT (HT *h, char key[]) {
     int x;
     int p = readHT(h, key, &x);
@@ -127,4 +227,11 @@ int deleteHT (HT *h, char key[]) {
         strcpy((h->tbl)[p].key, DELETED);
     }
     return p;
+}
+
+int printHT(HT *h, int size) {
+    for(int i = 0; i < size; i++) {
+        printf("%d -> (%s,%d)\n",i ,(h->tbl)[i].key, (h->tbl)[i].value);
+    }
+    return 0;
 }

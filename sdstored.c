@@ -74,7 +74,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     (*dest)->id = n_pedido;
     char buffer[32];
     //supor que tem a prioridade, in e out
-    int r = 10, w, n, i; //saltar o proc-file à frente
+    int r = 10, w, i; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
     //eu sei que recebi pelo menos 5 coisas, com o proc-file   
     w = 0;
