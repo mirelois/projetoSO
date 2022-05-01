@@ -5,7 +5,8 @@
        buffer[w] = string[r];\
     }\
     buffer[w] = '\0';\
-    r++;\
+    if (string[r] != '\0')\
+        r++;\
 
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
@@ -270,7 +271,7 @@ int executaPedido(Pedido *pedido, char *pasta) {
     } else {
         int status;
         wait(&status);
-        return 0;
+        return manager;
         //não fazer nada de jeito ou um wait não bloqueante
         //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
         //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
@@ -354,6 +355,31 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     return NULL;
 }
 
+int createInputChild(int pipe_input[2], int *pid_input_child) {
+    *pid_input_child = fork();
+    switch (*pid_input_child)
+    {
+    case 0: ;
+        int bytes_read;
+        char pipeRead[MAX_BUFF];
+        read(0, pipeRead, MAX_BUFF);
+        //lembrar de tirar
+        for (r = 0; i<MAX_BUFF; i++) {
+            if (pipeRead[r] == EOF) {
+                pipeRead[r] = '\0';
+            }
+        }
+        //loop de read do pipe com nome para buffer
+        close(pipe_input[0]);
+        //write(pipe_input[1], pipeRead, bytes_read);
+        close(pipe_input[1]);
+        _exit(0);
+
+        default: 
+            return 0;
+    }
+}
+
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
@@ -383,72 +409,78 @@ int main(int argc, char const *argv[]) {
     }
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
-    int r;
+    int r, w, bytes_read;
     PendingQueue pendingQ[MAX_PRIORITY+1];
     for (r = 0; i<MAX_PRIORITY+1; r++) {
         pendingQ[r].end = NULL;
         pendingQ[r].start = NULL;
     }
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
-    char pipeRead[MAX_BUFF];
-    read(0, pipeRead, MAX_BUFF);
-    //lembrar de tirar
-    for (r = 0; i<MAX_BUFF; i++) {
-        if (pipeRead[r] == EOF) {
-            pipeRead[r] = '\0';
+    int pipe_input[2];
+    if (pipe(pipe_input) == -1) {
+        write(2, "Failed Pipe to Input\n" 22);
+        return -1;
+    }
+    int pid_input_child, status, term, n_pedido = 1;
+    createInputChild(pipe_input, &pid_input_child);
+    while(1) {
+        term = wait(&status);
+        if (term = pid_input_child) {
+            char pipeRead[MAX_BUFF];
+            if (bytes_read = read(pipe_input[0], pipeRead, MAX_BUFF) == -1) {
+                write(2, "Failed to read from Input Pipe\n", 32);
+                return -1;
+            }
+            char pipeParse[32];
+            r = 0;
+            w = 0;
+            StringToBuffer(r, w, pipeRead, pipeParse)
+            if (strcmp(pipeParse, "status") == 0) {
+                //não esquecer de fazer o status
+                //tem diferente input
+                //apenas imprime o que está a ser processado (não o que está à espera)
+                //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
+                    //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
+                /*
+                int i, n;
+                char *string;
+                for (i = 0; i < n_pedidos_processamento; i++) {
+                    n = strArrayToString(pedidos_processamento[i]->n_transfs + 4, pedidos_processamento[i]->transfs, &string, 0);
+                    write(1, string, n); ou se calhar tem de escrever o cliente?
+                }
+                o pedidos processamento pode não ser array, pode ter de ser com apontadores, depende da implementação
+                */
+            } else if (strcmp(pipeParse, "proc-file") == 0) {
+                //Leitura do pedido
+                Pedido *pedido;
+                if ((w = createPedido(pipeRead, pedido, &maxs, n_pedido++)) == -1) {
+                    //erro de execução
+                    return -1;
+                } else if (w == 1) {
+                    //pedido rejeitado
+                    deepFree(pedido);
+                    //avisar o cliente que deu asneira
+                } else if (addPendingQueue(pedido, pendingQ)==-1) {
+                    return -1;
+                }
+                //executaPedido(pedido, pasta);
+                //avisar o cliente que foi posto em pending
+                pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
+                if (pedido != NULL) {
+                    //adicionar aos em processamento
+                    //avisar o cliente que foi adicionado aos em processamento
+                    r = executaPedido(pedido, pasta);
+                }
+            } else {
+                //erro de input do cliente, rejeitar o pedido
+            }
+            createInputChild(pipe_input, &pid_input_child);
+        } else { //se entrou aqui, acabou de terminar um pedido
+            //descobrir o pedido através do pid?
+            //reduzir aos maxs
+            //retirar da estrutura
         }
     }
-    //loop de read do pipe com nome para buffer
-
-    char pipeParse[32];
-    int w, n_pedido = 0;
-    r = 0;
-    w = 0;
-    StringToBuffer(r, w, pipeRead, pipeParse)
-    if (strcmp(pipeParse, "status") == 0) {
-        //não esquecer de fazer o status
-        //tem diferente input
-        //apenas imprime o que está a ser processado (não o que está à espera)
-        //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
-            //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
-        /*
-        int i, n;
-        char *string;
-        for (i = 0; i < n_pedidos_processamento; i++) {
-            n = strArrayToString(pedidos_processamento[i]->n_transfs + 4, pedidos_processamento[i]->transfs, &string, 0);
-            write(1, string, n); ou se calhar tem de escrever o cliente?
-        }
-        o pedidos processamento pode não ser array, pode ter de ser com apontadores, depende da implementação
-        */
-    } else if (strcmp(pipeParse, "proc-file") == 0) {
-        //Leitura do pedido
-        Pedido *pedido;
-        if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
-            //erro de execução
-            return -1;
-        } else if (w == 1) {
-            //pedido rejeitado
-            deepFree(pedido);
-            //escrever de volta ao cliente que deu asneira
-        }
-        if (addPendingQueue(pedido, pendingQ)==-1) {
-            
-            return -1;
-        }
-        //executaPedido(pedido, pasta);
-        //avisar o cliente que foi posto em pending
-        
-        pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
-        if (pedido != NULL) {
-            //adicionar aos em processamento
-            //avisar o cliente que foi adicionado aos em processamento
-            executaPedido(pedido, pasta);
-        }
-        //tentar executar logo?, se não colocar à espera
-    } else {
-        //erro de input do cliente, rejeitar o pedido
-    }
-
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final
     //1ª coisa que ele faz:
     //ler todas as transfs e guardar num dicionário quantas são de cada
