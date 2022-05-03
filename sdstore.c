@@ -1,5 +1,6 @@
 #include "sdstore.h"
 #include "init.h"
+
 /**
  *
  * @param argc
@@ -42,9 +43,14 @@ int main(int argc, char const *argv[])
         argv[i-2] = "proc-file";
         argv[i-1] = prio;
         n = strArrayToString(argc-i+2, argv+i-2, &string); //testar erro?
-        //write(pipe, string, strlen(string));
+        int fd_escrita;
+        if((fd_escrita = open("entrada", O_WRONLY)) == -1){
+            write(2, "Failed to open the named pipe", 30);
+            exit(-1);
+        }
+        write(fd_escrita, string, strlen(string));
+        close(fd_escrita); // fechar por agora
         free(string);
-
         //vai ler e escrever 3 vezes
         int bytes_read;
         char buffer[32];
