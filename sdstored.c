@@ -362,11 +362,11 @@ int createInputChild(int pipe_input[2], int *pid_input_child) {
     switch (*pid_input_child)
     {
     case 0: ;
-        int bytes_read;
+        int bytes_read,r;
         char pipeRead[MAX_BUFF];
         read(0, pipeRead, MAX_BUFF);
         //lembrar de tirar
-        for (r = 0; i<MAX_BUFF; i++) {
+        for (r = 0; r<MAX_BUFF; r++) {
             if (pipeRead[r] == EOF) {
                 pipeRead[r] = '\0';
             }
@@ -420,7 +420,7 @@ int main(int argc, char const *argv[]) {
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     int pipe_input[2];
     if (pipe(pipe_input) == -1) {
-        write(2, "Failed Pipe to Input\n" 22);
+        write(2, "Failed Pipe to Input\n", 22);
         return -1;
     }
     int pid_input_child, status, term, n_pedido = 1;
