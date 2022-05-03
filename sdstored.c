@@ -494,6 +494,7 @@ int main(int argc, char const *argv[]) {
             //descobrir o pedido através do pid?
             //reduzir aos maxs
             //retirar da estrutura
+            //falar com cliente
         }
     }
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final
