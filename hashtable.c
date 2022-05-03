@@ -13,12 +13,48 @@
  * @param size tamanho do dicionario
  * @return 
  */
-int hash(char key[], int size) {
+int hash(HT* h, void* key_void) {
+
     int ret = 0;
-    for(int i =0; key[i] != '\0'; i++){
-        ret += key[i];
+
+    if(h->type == STRING) {
+
+        char* key = (char*)key_void;
+        
+
+        for(int i =0; key[i] != '\0'; i++){
+           ret += key[i];
+        }
+
+    }else if(h->type == INT) {
+
+        ret = *((int*)key_void);
+
+    }else {
+        return -1;//condiçao de erro se o user for alta palhaço
     }
-    return ret%size;
+    
+    return ret%(h->size);
+    
+}
+
+int isfreeHT(HT* h, int p) {
+    if(h->type == STRING) {
+        return strcmp((char*)h->tbl[p].key, EMPTY_STRING) == 0 || strcmp((char*)h->tbl[p].key, DELETED_STRING) == 0;
+    }
+    if(h->type == INT) {
+        return *((int*)h->tbl[p].key) == EMPTY_INT || *((int*)h->tbl[p].key) == DELETED_INT;
+    }
+
+}
+
+int keycmp(HT* h, void* key1, void* key2) {
+    if(h->type == STRING) {
+        return strcmp((char*)key1, (char*)key2);
+    }
+    if(h->type == INT) {
+        return *((int*)key1) - *((int*)key2);
+    }
 }
 
 /**
@@ -29,10 +65,10 @@ int hash(char key[], int size) {
  * @param size tamanho do dicionario
  * @return 0 se o dicionario for inicializado corretamente e -1 caso contrario
  */
-int initHT(HT *h, int size, int aux_array_flag) {
-    h->aux_array.aux_array_flag = aux_array_flag;
+int initHT(HT *h, int size, int aux_array_flag, int type) {
+
     if (aux_array_flag) {
-        if((h->aux_array.array = malloc(size*sizeof(int))) == NULL) {
+        if((h->aux_array.array = malloc(2*size*sizeof(int))) == NULL) {
             return -1;
         };
         h->aux_array.last = -1;
@@ -46,33 +82,30 @@ int initHT(HT *h, int size, int aux_array_flag) {
         return -1;
     }
 
+    h->type = type;
+    h->aux_array.aux_array_flag = aux_array_flag;
     h->size = size;
     h->used = 0;
-    for (int i=0; i<size; i++) {
-        strcpy(h->tbl[i].key, EMPTY);
-        h->tbl[i].value = -1;
+
+    if(h->type == STRING) {
+
+        for (int i=0; i<size; i++) {
+            h->tbl[i].key = (void*)malloc(MAX_TRANSF_SIZE*sizeof(char));
+            strcpy(h->tbl[i].key, EMPTY_STRING);
+        }
+
+    }else if(h->type == INT) {
+        
+        for (int i=0; i<size; i++) {
+            pid_t* tmp = malloc(sizeof(pid_t));
+            *tmp = EMPTY_INT;
+            h->tbl[i].key = (void*)tmp;
+        }
+
+    }else {
+        return -1;//condiçao de erro se o user for alta palhaço
     }
     return 0;
-}
-
-/**
- * @brief incrementa o valor associado a uma chave por um 
- * 
- * 
- * @param h pointer de um dicionario onde atualizar o valor
- * @param key chave cujo valor associado sera incrementado
- * @param value pointer de um valor onde guardar o valor incrementado
- * @return posicao onde o valor foi incrementado ou -1 de falhar
- */
-int plusOneHT(HT *h, char key[], int *value) {
-
-    int x;
-    int p = readHT(h, key, &x);
-    if(p != -1) {
-        (h->tbl)[p].value++;
-        *value = x+1;
-    }
-    return p;
 }
 
 /**
@@ -83,6 +116,9 @@ int plusOneHT(HT *h, char key[], int *value) {
  * @return 0 se p nao e primo 1 caso contrario
  */
 void freeHT(HT *h) {
+    for(int i = 0; i < h->size; i++) {
+        free(h->tbl[i].key);
+    }
     free(h->tbl);
     free(h);
 }
@@ -95,13 +131,13 @@ void freeHT(HT *h) {
  * @return 0 se p nao e primo 1 caso contrario
  */
 int isprime(int p){
-    int i , r = 0;
-    for(i = 2 ; i < p/2 ; i++){
-        if(p%i == 0) {
-            r = 1;
+    int i;
+    for(i = 2 ; i <= p/2 ; i++){
+        if(p % i == 0) {
+            return 0;
         }
     }
-    return r;
+    return 1;
 }
 
 /**
@@ -113,26 +149,34 @@ int isprime(int p){
  * @param value valor a associar com a chave no dicionario
  * @return posicao onde escreveu
  */
-int writeHTaux (HT *h, char key[], int value) {
+int writeHTaux (HT *h, void* key, int value) {
 
-    int p= hash(key, h->size);
+    int p = hash(h, key);
     int flag = 1;
 
-    for(p; !FREE(h,p) && (flag = strcmp(key,(h->tbl)[p].key)); p = (p+1)%(h->size));
+    for(p; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
     if (!flag) {
         (h->tbl)[p].value = value;
     }else {
 
     if (h->aux_array.aux_array_flag) {
-        h->aux_array.array[p] = h->aux_array.last;
+        int last = h->aux_array.last;
+        if (last != -1) {
+            h->aux_array.array[POS(last,1)] = p;
+        }
+        h->aux_array.array[POS(p,0)] = last;
         h->aux_array.last = p;
     }
 
-    
+    if (h->type == STRING) {
+        strcpy(h->tbl[p].key, (char*)key);
+    }else if (h->type == INT) {
+        *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
+    }
 
-    strcpy((h->tbl)[p].key, key);
     (h->tbl)[p].value = value;
     h->used++;
+
     }
 
     return p;
@@ -151,7 +195,7 @@ int writeHTaux (HT *h, char key[], int value) {
  * @param value valor a associar com a chave no dicionario
  * @return posiçao onde colocou o par ou -1 se falhar
  */
-int writeHT (HT *h, char key[], int value) {
+int writeHT (HT *h, void* key, int value) {
 
     float charge = (h->used + 1.0)/(h->size);
 
@@ -165,19 +209,30 @@ int writeHT (HT *h, char key[], int value) {
 
         int new_size;
 
-        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
+        for(new_size = (h->size)*2; !isprime(new_size); new_size++){
+            printf("\n--%d--\n",new_size);
+        }
 
-        if(initHT(new_h, new_size+1, h->aux_array.aux_array_flag) == -1){
+
+        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->type) == -1){
             return -1;
         }
 
         for(int i = 0; i < h->size; i++) {
-            //printf("\n%s\n", h->tbl[i].key);
-            if (!FREE(h,i)){
+            if (!isfreeHT(h, i)){
                 writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
             }
         }
+
+        if (h->aux_array.aux_array_flag) {
+            free(h->aux_array.array);
+            h->aux_array.array = new_h->aux_array.array;
+            h->aux_array.last = new_h->aux_array.last;
+        }
         
+        for(int i = 0; i < h->size; i++) {
+            free(h->tbl[i].key);
+        }
         free(h->tbl);
         h->tbl = new_h->tbl;
         h->size = new_h->size;
@@ -198,9 +253,16 @@ int writeHT (HT *h, char key[], int value) {
  * @param value pointer onde é colocado o valor associado a chave
  * @return posicao na tabela de onde foi lido o valor ou -1 caso a chave nao exista no dicionario
  */
-int readHT(HT *h, char key[], int* value){
+int readHT(HT *h, void* key, int* value){
     int p , r = -1 , c = h->size, flg = 1;
-    for(p = hash(key,h->size); strcmp(key,(h->tbl)[p].key) && (c > 0) && (flg = strcmp(EMPTY,(h->tbl)[p].key)); c--){
+    void* empty;
+    if (h->type == STRING) {
+        empty = (void*)EMPTY_STRING;
+    }else if (h->type == INT) {
+        int tmp = EMPTY_INT;
+        empty = (void*)&tmp;
+    }
+    for(p = hash(h, key); keycmp(h, key,(h->tbl)[p].key) && (c > 0) && (flg = keycmp(h, empty,(h->tbl)[p].key)); c--){
         p = (p+1)%(h->size);
     }
     if(c != 0 && flg){
@@ -219,18 +281,50 @@ int readHT(HT *h, char key[], int* value){
  * @param key chave a eliminar
  * @return posicao na tabela de onde foi eliminada a chave ou -1 caso a chave nao exista no dicionario
  */
-int deleteHT (HT *h, char key[]) {
+int deleteHT (HT *h, void* key) {
+
     int x;
     int p = readHT(h, key, &x);
+
     if(p != -1) {
-        strcpy((h->tbl)[p].key, DELETED);
+
+        if (h->type == STRING) {
+            strcpy(h->tbl[p].key, DELETED_STRING);
+        }else if (h->type == INT) {
+            *(pid_t*)(h->tbl[p].key) = DELETED_INT;
+        }
+
+        if (h->aux_array.aux_array_flag) {
+
+            int last = h->aux_array.last;
+
+            if (p == last) {
+                h->aux_array.last = h->aux_array.array[POS(p,0)];
+            }
+            
+            int i1 = h->aux_array.array[POS(p,0)];
+            int i2 = h->aux_array.array[POS(p,1)];
+            h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
+            h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
+
+
+        }
+
     }
     return p;
 }
 
-int printHT(HT *h, int size) {
-    for(int i = 0; i < size; i++) {
-        printf("%d -> (%s,%d)\n",i ,(h->tbl)[i].key, (h->tbl)[i].value);
+int printHT(HT *h) {
+    if(h->type == INT){
+        for(int i = 0; i < h->size; i++) {
+            printf("%d -> (%d,%d)\n",i ,*((int*)((h->tbl)[i].key)), ((h->tbl)[i].value));
+        }
+    }else if(h->type == STRING) {
+        for(int i = 0; i < h->size; i++) {
+            printf("%d -> (%s,%d)\n",i ,(char*)((h->tbl)[i].key), ((h->tbl)[i].value));
+        }
     }
+    putchar('\n');
     return 0;
+    
 }
