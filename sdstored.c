@@ -413,7 +413,7 @@ int main(int argc, char const *argv[]) {
     //parse desse ficheiro .config: readln c/ sequencial até ' '
     int r, w, bytes_read;
     PendingQueue pendingQ[MAX_PRIORITY+1];
-    for (r = 0; i<MAX_PRIORITY+1; r++) {
+    for (r = 0; r<MAX_PRIORITY+1; r++) {
         pendingQ[r].end = NULL;
         pendingQ[r].start = NULL;
     }
