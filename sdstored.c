@@ -357,7 +357,7 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     return NULL;
 }
 
-int createInputChild(int pipe_input[2], int *pid_input_child) {
+int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
     *pid_input_child = fork();
     switch (*pid_input_child)
     {
@@ -366,14 +366,17 @@ int createInputChild(int pipe_input[2], int *pid_input_child) {
         char pipeRead[MAX_BUFF];
         read(0, pipeRead, MAX_BUFF);
         //lembrar de tirar
-        for (r = 0; r<MAX_BUFF; r++) {
-            if (pipeRead[r] == EOF) {
-                pipeRead[r] = '\0';
-            }
+        //for (r = 0; r<MAX_BUFF; r++) {
+        //    if (pipeRead[r] == EOF) {
+        //        pipeRead[r] = '\0';
+        //    }
+        //}
+        while(){
+            
         }
         //loop de read do pipe com nome para buffer
         close(pipe_input[0]);
-        //write(pipe_input[1], pipeRead, bytes_read);
+        write(pipe_input[1], pipeRead, bytes_read);
         close(pipe_input[1]);
         _exit(0);
 
@@ -385,6 +388,16 @@ int createInputChild(int pipe_input[2], int *pid_input_child) {
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
+    if((mkfifo("entrada", 0666)) == -1){
+        write(2, "Failed to create Named pipe entrada\n", 37);
+        return -1;
+    }
+    int fd_leitura;
+    if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
+        write(2, "Failed to open the named pipe\n", 31);
+        return -1;
+    }
+
     int fdConfig;
     if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
         //como validar um path (pasta)?
@@ -424,7 +437,7 @@ int main(int argc, char const *argv[]) {
         return -1;
     }
     int pid_input_child, status, term, n_pedido = 1;
-    createInputChild(pipe_input, &pid_input_child);
+    createInputChild(pipe_input, &pid_input_child, fd_leitura);
     while(1) {
         term = wait(&status);
         if (term = pid_input_child) {
@@ -510,5 +523,6 @@ int main(int argc, char const *argv[]) {
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
     //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
     //freeHT(maxs);
+    close(fd_leitura);
     return 0;
 }

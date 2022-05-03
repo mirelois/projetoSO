@@ -45,7 +45,7 @@ int main(int argc, char const *argv[])
         n = strArrayToString(argc-i+2, argv+i-2, &string); //testar erro?
         int fd_escrita;
         if((fd_escrita = open("entrada", O_WRONLY)) == -1){
-            write(2, "Failed to open the named pipe", 30);
+            write(2, "Failed to open the named pipe\n", 31);
             exit(-1);
         }
         write(fd_escrita, string, strlen(string));
