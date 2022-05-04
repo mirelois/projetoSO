@@ -341,17 +341,26 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     //não funfa c:
     int i = MAX_TRANSF_SIZE;
-    LList **nodo;
+    LList *nodo;
     Pedido *pedido;
     while (i >= 0 && queue[i].start == NULL) i--;
+    //if (i >= 0) {
+    //    for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
+    //        pedido = (*nodo)->pedido;
+    //        int l;
+    //        if (l = isPedidoExec(pedido, maxs, curr)) {
+    //            (*nodo) = (*nodo)->next;
+    //            return pedido;
+    //        }
+    //    }
+    //}
+    //tenta executar o primeiro, se deu deu
     if (i >= 0) {
-        for (nodo = &(queue[i].start); (*nodo) != NULL; nodo = &((*nodo)->next)) {
-            pedido = (*nodo)->pedido;
-            int l;
-            if (l = isPedidoExec(pedido, maxs, curr)) {
-                (*nodo) = (*nodo)->next;
-                return pedido;
-            }
+        nodo = queue[i].start;
+        pedido = nodo->pedido;
+        if (isPedidoExec(pedido, maxs, curr)) {
+            nodo = nodo->next;
+            return pedido;
         }
     }
     return NULL;
