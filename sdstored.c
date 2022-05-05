@@ -23,16 +23,19 @@
  * @return int Valor de erro se o pedido for válido ou rejeitado
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
-    int max, curr;
-    if (readHT(maxs, transf, &max) == -1) {
+    int *max = malloc(sizeof(int)), 
+        *curr = malloc(sizeof(int));
+    if (readHT(maxs, transf, (void**) &max) == -1) {
         write(2, "Transformation not in config.", 30);
         return 1;
     }
-    if (plusOneHT(h, transf, &curr) == -1) {
-        writeHT(h, transf, 1);
-        curr = 1;
+    if (readHT(h, transf, (void**) &curr) == -1) {
+        (*curr) = 1;
+        writeHT(h, transf, (void*) curr);
+    } else {
+        (*curr)++;
     }
-    if (curr > max) {
+    if (*curr > *max) {
         //rejeitar o pedido
         return -1;
     }
@@ -44,7 +47,7 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
  * Utiliza a função freeHT definida para libertar hashtables.
  * @param dest Pedido a se libertar.
  */
-void deepFree(Pedido *dest) {
+void deepFreePedido(Pedido *dest) {
     if (dest->hashtable) {
         freeHT(dest->hashtable);
     }
@@ -90,7 +93,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
 
     (*dest)->pedido = strdup(string+r);
     (*dest)->hashtable = malloc(sizeof(HT));
-    initHT((*dest)->hashtable, 13, 0);
+    initHT((*dest)->hashtable, INIT_DICT_SIZE, 0, STRING);
     for(i = 0; string[r] != '\0'; i++) {
         w = 0;
         StringToBuffer(r, w, string, buffer)
@@ -130,7 +133,7 @@ void escolheEntradaSaidaOneTransf(char *in, char *out){
     close(fd_o);
 }
 
-void escolheEntradaSaida(Pedido *pedido, int i, int **p){
+void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
     if(i == pedido->n_transfs-1){
         if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input", 24);
@@ -323,7 +326,7 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     int i, s, new, c, max;
     for (i = 0, s = 0; i<pedido->hashtable->size && s<pedido->hashtable->used; i++) {
         
-        if (!(FREE(pedido->hashtable, i))) {
+        if (!(isfreeHT(pedido->hashtable, i))) {
             s++;
             readHT(maxs, pedido->hashtable->tbl[i].key, &max);
             readHT(pedido->hashtable, pedido->hashtable->tbl[i].key, &new);
@@ -431,7 +434,7 @@ int main(int argc, char const *argv[]) {
 
     //fix manhoso
     HT curr;
-    if (initHT(&curr, INIT_DICT_SIZE, 1) == -1) {
+    if (initHT(&curr, INIT_DICT_SIZE, 0, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
     }
     //todo preencher o dicionário com 1º argumento
@@ -486,7 +489,7 @@ int main(int argc, char const *argv[]) {
                     return -1;
                 } else if (w == 1) {
                     //pedido rejeitado
-                    deepFree(pedido);
+                    deepFreePedido(pedido);
                     //avisar o cliente que deu asneira
                 } else if (addPendingQueue(pedido, pendingQ)==-1) {
                     return -1;
@@ -503,11 +506,13 @@ int main(int argc, char const *argv[]) {
                 //erro de input do cliente, rejeitar o pedido
             }
             createInputChild(pipe_input, &pid_input_child, fd_leitura);
-        } else { //se entrou aqui, acabou de terminar um pedido
+        } else { 
+            //se entrou aqui, acabou de terminar um pedido
             //descobrir o pedido através do pid?
             //reduzir aos maxs
+            //falar com cliente ESPECIFICAMENTE ANTES DA DE BAIXO PARA NÃO SE PERDER O PEDIDO
             //retirar da estrutura
-            //falar com cliente
+            
         }
     }
     //suponhamos que o servidor sabe prioridade, init file, transfs e file final

@@ -45,7 +45,6 @@ int isfreeHT(HT* h, int p) {
     if(h->type == INT) {
         return *((int*)h->tbl[p].key) == EMPTY_INT || *((int*)h->tbl[p].key) == DELETED_INT;
     }
-
 }
 
 int keycmp(HT* h, void* key1, void* key2) {

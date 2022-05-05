@@ -38,7 +38,7 @@ int strArrayToString(int n, char *array[], char **dest) {
 
 int readConfig(int fd, HT *hash_table) {
     //ver os casos em que pode falhar
-    int bytes_read, i = 0, word_size;
+    int bytes_read, i = 0, word_size, tmp;
     char buff[MAX_BUFF], dict_key[MAX_TRANSF_SIZE], dict_value[5];
     bytes_read = read(fd, buff, MAX_BUFF);
     while(bytes_read > 0) {
@@ -71,7 +71,8 @@ int readConfig(int fd, HT *hash_table) {
         }
         dict_value[word_size] = '\0';
         i++;
-        writeHT(hash_table, dict_key, atoi(dict_value));
+        tmp = atoi(dict_value);
+        writeHT(hash_table, dict_key, &tmp);
         if (i == bytes_read) {
             bytes_read = read(fd, buff, MAX_BUFF);
             i = 0;

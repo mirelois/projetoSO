@@ -55,7 +55,7 @@ int main(int argc, char const *argv[])
         int bytes_read;
         char buffer[32];
         for (i = 0; i<2;i++) {
-            //read pipe com nome NÃO LÊ NADA QUE ISTO DÁ ASNEIRA
+            //read pipe com nome NÃO LÊ NADA QUE ISTO DÁ ASNEIRA tem de ler do pipe com nome criado aqui
             write(1, buffer, bytes_read);
         }
         //read pipe da conclusão
