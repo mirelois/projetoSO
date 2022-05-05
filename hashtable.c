@@ -141,7 +141,7 @@ void freeHT(HT *h) {
         free(h->tbl[i].key);
     }
     free(h->tbl);
-    free(h);
+    //free(h);
 }
 
 /**
