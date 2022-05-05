@@ -372,17 +372,15 @@ int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
     {
     case 0: ;
         int bytes_read,r;
-        char pipeRead[MAX_BUFF];
-        read(0, pipeRead, MAX_BUFF);
+        char pipeRead[4]; // Colocar 512 em vez de Max_Buff ? 
+        //read(0, pipeRead, MAX_BUFF);
         //lembrar de tirar
         //for (r = 0; r<MAX_BUFF; r++) {
         //    if (pipeRead[r] == EOF) {
         //        pipeRead[r] = '\0';
         //    }
         //}
-        while(){
-            
-        }
+        bytes_read = read(fd_leitura, pipeRead, 4); // falta tratar erros
         //loop de read do pipe com nome para buffer
         close(pipe_input[0]);
         write(pipe_input[1], pipeRead, bytes_read);
@@ -450,14 +448,15 @@ int main(int argc, char const *argv[]) {
     while(1) {
         term = wait(&status);
         if (term = pid_input_child) {
-            char pipeRead[MAX_BUFF];
-            if (bytes_read = read(pipe_input[0], pipeRead, MAX_BUFF) == -1) {
+            char pipeRead[MAX_BUFF], tamanhoPedido[4];
+            if (bytes_read = read(pipe_input[0], tamanhoPedido, 4) == -1) {
                 write(2, "Failed to read from Input Pipe\n", 32);
                 return -1;
             }
             char pipeParse[32];
             r = 0;
             w = 0;
+            read(fd_leitura, pipeRead, atoi(tamanhoPedido)); // falta tratar erros
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
                 //não esquecer de fazer o status
