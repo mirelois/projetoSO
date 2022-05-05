@@ -422,7 +422,7 @@ int main(int argc, char const *argv[]) {
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
     
     HT maxs;
-    if (initHT(&maxs, INIT_DICT_SIZE, 1) == -1) {
+    if (initHT(&maxs, INIT_DICT_SIZE, 1, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
     }
     if (readConfig(fdConfig, &maxs) == -1) {
@@ -502,7 +502,7 @@ int main(int argc, char const *argv[]) {
             } else {
                 //erro de input do cliente, rejeitar o pedido
             }
-            createInputChild(pipe_input, &pid_input_child);
+            createInputChild(pipe_input, &pid_input_child, fd_leitura);
         } else { //se entrou aqui, acabou de terminar um pedido
             //descobrir o pedido através do pid?
             //reduzir aos maxs
