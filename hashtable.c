@@ -92,6 +92,7 @@ int initHT(HT *h, int size, int aux_array_flag, int type) {
         for (int i=0; i<size; i++) {
             h->tbl[i].key = (void*)malloc(MAX_TRANSF_SIZE*sizeof(char));
             strcpy(h->tbl[i].key, EMPTY_STRING);
+            h->tbl[i].value = NULL;
         }
 
     }else if(h->type == INT) {
@@ -100,12 +101,24 @@ int initHT(HT *h, int size, int aux_array_flag, int type) {
             pid_t* tmp = malloc(sizeof(pid_t));
             *tmp = EMPTY_INT;
             h->tbl[i].key = (void*)tmp;
+            h->tbl[i].value = NULL;
         }
 
     }else {
         return -1;//condiçao de erro se o user for alta palhaço
     }
     return 0;
+}
+
+void AuxFree(HT *h) {
+    if(h->aux_array.aux_array_flag) {
+        free(h->aux_array.array);
+    }
+    for(int i = 0; i < h->size; i++) {
+
+        free(h->tbl[i].key);
+    }
+    free(h->tbl);
 }
 
 /**
@@ -116,7 +129,15 @@ int initHT(HT *h, int size, int aux_array_flag, int type) {
  * @return 0 se p nao e primo 1 caso contrario
  */
 void freeHT(HT *h) {
+    if(h->aux_array.aux_array_flag) {
+        free(h->aux_array.array);
+    }
     for(int i = 0; i < h->size; i++) {
+        
+        if(h->tbl[i].value != NULL){
+            free(h->tbl[i].value);
+        }
+
         free(h->tbl[i].key);
     }
     free(h->tbl);
@@ -149,12 +170,15 @@ int isprime(int p){
  * @param value valor a associar com a chave no dicionario
  * @return posicao onde escreveu
  */
-int writeHTaux (HT *h, void* key, int value) {
+int writeHTaux (HT *h, void* key, void* value) {
 
     int p = hash(h, key);
     int flag = 1;
 
     for(p; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
+    
+    free(h->tbl[p].value);
+
     if (!flag) {
         (h->tbl)[p].value = value;
     }else {
@@ -173,7 +197,6 @@ int writeHTaux (HT *h, void* key, int value) {
     }else if (h->type == INT) {
         *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
     }
-
     (h->tbl)[p].value = value;
     h->used++;
 
@@ -195,7 +218,7 @@ int writeHTaux (HT *h, void* key, int value) {
  * @param value valor a associar com a chave no dicionario
  * @return posiçao onde colocou o par ou -1 se falhar
  */
-int writeHT (HT *h, void* key, int value) {
+int writeHT (HT *h, void* key, void* value) {
 
     float charge = (h->used + 1.0)/(h->size);
 
@@ -209,9 +232,7 @@ int writeHT (HT *h, void* key, int value) {
 
         int new_size;
 
-        for(new_size = (h->size)*2; !isprime(new_size); new_size++){
-            printf("\n--%d--\n",new_size);
-        }
+        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
 
 
         if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->type) == -1){
@@ -225,15 +246,10 @@ int writeHT (HT *h, void* key, int value) {
         }
 
         if (h->aux_array.aux_array_flag) {
-            free(h->aux_array.array);
             h->aux_array.array = new_h->aux_array.array;
             h->aux_array.last = new_h->aux_array.last;
         }
-        
-        for(int i = 0; i < h->size; i++) {
-            free(h->tbl[i].key);
-        }
-        free(h->tbl);
+        AuxFree(h);
         h->tbl = new_h->tbl;
         h->size = new_h->size;
         h->used = new_h->used;
@@ -253,7 +269,7 @@ int writeHT (HT *h, void* key, int value) {
  * @param value pointer onde é colocado o valor associado a chave
  * @return posicao na tabela de onde foi lido o valor ou -1 caso a chave nao exista no dicionario
  */
-int readHT(HT *h, void* key, int* value){
+int readHT(HT *h, void* key, void** value){
     int p , r = -1 , c = h->size, flg = 1;
     void* empty;
     if (h->type == STRING) {
@@ -283,7 +299,7 @@ int readHT(HT *h, void* key, int* value){
  */
 int deleteHT (HT *h, void* key) {
 
-    int x;
+    void* x;
     int p = readHT(h, key, &x);
 
     if(p != -1) {
@@ -293,6 +309,9 @@ int deleteHT (HT *h, void* key) {
         }else if (h->type == INT) {
             *(pid_t*)(h->tbl[p].key) = DELETED_INT;
         }
+
+        free(h->tbl[p].value);
+        h->tbl[p].value = NULL;
 
         if (h->aux_array.aux_array_flag) {
 
@@ -307,24 +326,8 @@ int deleteHT (HT *h, void* key) {
             h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
             h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
 
-
         }
 
     }
     return p;
-}
-
-int printHT(HT *h) {
-    if(h->type == INT){
-        for(int i = 0; i < h->size; i++) {
-            printf("%d -> (%d,%d)\n",i ,*((int*)((h->tbl)[i].key)), ((h->tbl)[i].value));
-        }
-    }else if(h->type == STRING) {
-        for(int i = 0; i < h->size; i++) {
-            printf("%d -> (%s,%d)\n",i ,(char*)((h->tbl)[i].key), ((h->tbl)[i].value));
-        }
-    }
-    putchar('\n');
-    return 0;
-    
 }

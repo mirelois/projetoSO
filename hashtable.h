@@ -13,7 +13,7 @@
 
 struct pair {
     void* key;
-    int value;
+    void* value;
 };
     
 struct aux_array {
@@ -41,10 +41,10 @@ void freeHT(HT *h);
 
 int initHT (HT *h, int size, int aux_array_flag, int type);
 
-int writeHT (HT *h, void* key, int value);
+int plusOneHT(HT *h, char key[], int* value);
 
-int readHT (HT *h, void* key, int* value);
+int writeHT (HT *h, void* key, void* value);
+
+int readHT (HT *h, void* key, void** value);
 
 int deleteHT (HT *h, void* key);
-
-int printHT(HT *h);
