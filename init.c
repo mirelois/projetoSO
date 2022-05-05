@@ -9,9 +9,20 @@ int strArrayToString(int n, char *array[], char **dest) {
         for (i = 0, c = 0, s = -1; i<n; i++, s++) {
             c += strlen(array[i]);
         }
-        (*dest) = malloc(c+s+1);
+        (*dest) = malloc(c+s+5); // inicial: c + s + 1, como queremos 4 chars para tamanho do pedido fica c + s + 5
         char *target = (*dest);
         *target = '\0';
+        int tamanho = c + s + 1;
+        for(i=0; tamanho!=0; i++){ // contar quantas casas
+            tamanho = tamanho/10;
+        }
+        //if(tamanho > 4) return -1 -> possibilidade ? xD
+        int j;
+        for(j=1; j <= 4-i; i++)
+            target[j] = '0';
+        target += j;
+        sprintf(target, "%d", i);
+        target += i;
         strcat(target, array[0]);
         target += strlen(array[0]);
         for(i = 1; i<n; i++) {
@@ -20,7 +31,7 @@ int strArrayToString(int n, char *array[], char **dest) {
             strcat(target, array[i]);
             target += strlen(array[i]);
         }
-        return c+s+1;
+        return c+s+5;
     }
     return 0;
 }
