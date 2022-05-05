@@ -399,8 +399,13 @@ int main(int argc, char const *argv[]) {
         write(2, "Failed to create Named pipe entrada\n", 37);
         return -1;
     }
-    int fd_leitura;
+    int fd_leitura, fd_escrita;
     if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
+        write(2, "Failed to open the named pipe\n", 31);
+        return -1;
+    }
+
+    if ((fd_escrita = open("entrada", O_WRONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
         return -1;
     }
