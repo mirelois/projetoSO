@@ -56,7 +56,6 @@ void deepFreePedido(Pedido *dest) {
     free(dest->out);
     free(dest->prio);
     free(dest->pedido);
-    free(dest);
 }
 
 /**
@@ -344,7 +343,7 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 }
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
-    int i = MAX_TRANSF_SIZE;
+    int i = MAX_PRIORITY;
     LList *nodo;
     Pedido *pedido;
     while (i >= 0 && queue[i].start == NULL) i--;
@@ -495,11 +494,16 @@ int main(int argc, char const *argv[]) {
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
                 char *string;
+<<<<<<< HEAD
                 for (r = proc.aux_array.last; r != -1; w = proc.aux_array.array[POS(r, 0)]) {
                     bytes_read = pedidoToString((Pedido *) proc->tbl[r].value, &string);
                     //term = open("proc->client_pid", O_WRONLY)
                     //write(term, string, bytes_read)
                     free(string);
+=======
+                for (r = 0, w = proc->aux_array.last; w != -1 && r < proc->used; w = proc->aux_array.array[POS(w, 0)]) {
+                    
+>>>>>>> 0054c331be547c3c6a6ad40e030e9ac40527c0f9
                 }
             } else if (strcmp(pipeParse, "proc-file") == 0) {
                 //Leitura do pedido
