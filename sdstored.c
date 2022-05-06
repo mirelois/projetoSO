@@ -486,7 +486,7 @@ int main(int argc, char const *argv[]) {
             if (strcmp(pipeParse, "status") == 0) {
                 char *string;
                 for (r = 0, w = proc.aux_array.last; w != -1 && r < proc.used; w = proc.aux_array.array[POS(w, 0)]) {
-                    (Pedido *) proc.tbl[w].value
+                    
                 }
                 //não esquecer de fazer o status
                 //tem diferente input
