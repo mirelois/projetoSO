@@ -327,7 +327,7 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     for (i = 0, s = maxs->aux_array.last; s != -1 && i<pedido->hashtable->used; i++, s = maxs->aux_array.array[POS(s, 0)]) {
         strcpy(transf, (char *) maxs->tbl[i].key);
         if (readHT(pedido->hashtable, (void *) transf, (void **) &new) != -1) {
-            readHT(maxs, trasnf, &max);
+            readHT(maxs, transf, &max);
             if (readHT(curr, transf, &c) == -1) {
                 c = malloc(sizeof(int));
                 *c = 0;
@@ -426,15 +426,24 @@ int main(int argc, char const *argv[]) {
     HT maxs;
     if (initHT(&maxs, INIT_DICT_SIZE, 1, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
+        return -1;
     }
     if (readConfig(fdConfig, &maxs) == -1) {
         write(2, "Failed to read config", 22);
+        return -1;
     }
 
     //fix manhoso
     HT curr;
     if (initHT(&curr, INIT_DICT_SIZE, 0, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
+        return -1;
+    }
+
+    HT proc;
+    if (initHT(&proc, INIT_DICT_SIZE, 1, INT) == -1) {
+        write(2, "No space for Hashtable", 23);
+        return -1;
     }
     //todo preencher o dicionário com 1º argumento
     //parse desse ficheiro .config: readln c/ sequencial até ' '
@@ -466,6 +475,7 @@ int main(int argc, char const *argv[]) {
             read(fd_leitura, pipeRead, atoi(tamanhoPedido)); // falta tratar erros
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
+
                 //não esquecer de fazer o status
                 //tem diferente input
                 //apenas imprime o que está a ser processado (não o que está à espera)
