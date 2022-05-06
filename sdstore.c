@@ -49,6 +49,7 @@ int main(int argc, char const *argv[])
             exit(-1);
         }
         write(fd_escrita, string, n);
+        printf("%s\n", string);
         close(fd_escrita); // fechar por agora
         free(string);
         //vai ler e escrever 3 vezes
