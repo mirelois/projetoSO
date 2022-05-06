@@ -23,15 +23,16 @@
  * @return int Valor de erro se o pedido for válido ou rejeitado
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
-    int *max = malloc(sizeof(int)), 
+    int *max, 
         *curr = malloc(sizeof(int));
+    char *s = strdup(transf);
     if (readHT(maxs, transf, (void**) &max) == -1) {
         write(2, "Transformation not in config.", 30);
         return 1;
     }
     if (readHT(h, transf, (void**) &curr) == -1) {
         (*curr) = 1;
-        writeHT(h, transf, (void*) curr);
+        writeHT(h, s, (void*) curr);
     } else {
         (*curr)++;
     }
@@ -329,9 +330,10 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
         if (readHT(pedido->hashtable, (void *) transf, (void **) &new) != -1) {
             readHT(maxs, transf, &max);
             if (readHT(curr, transf, &c) == -1) {
+                char *wr = strdup(transf);
                 c = malloc(sizeof(int));
                 *c = 0;
-                writeHT(curr, transf, c);
+                writeHT(curr, wr, c);
             }
             if (max - c < new) {
                 return 0;
@@ -394,11 +396,11 @@ int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
     }
 }
 
-char *PedidoToString(Pedido *pedido) {
+int PedidoToString(Pedido *pedido, char **dest) {
     int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 14;
-    char *string = malloc(n);
-    sprintf(string, "%s %s %s %s %s", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido);
-    return string;
+    (*dest) = malloc(n);
+    sprintf((*dest), "%s %s %s %s %s", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido);
+    return n;
 }
 
 int main(int argc, char const *argv[]) {
@@ -430,25 +432,25 @@ int main(int argc, char const *argv[]) {
     //lembrar da pasta em algum sítio para os executáveis
     //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
     
-    HT maxs;
-    if (initHT(&maxs, INIT_DICT_SIZE, 1, STRING) == -1) {
+    HT *maxs = malloc(sizeof(HT));
+    if (initHT(maxs, INIT_DICT_SIZE, 1, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
         return -1;
     }
-    if (readConfig(fdConfig, &maxs) == -1) {
+    if (readConfig(fdConfig, maxs) == -1) {
         write(2, "Failed to read config", 22);
         return -1;
     }
 
     //fix manhoso
-    HT curr;
-    if (initHT(&curr, INIT_DICT_SIZE, 0, STRING) == -1) {
+    HT *curr = malloc(sizeof(HT));
+    if (initHT(curr, INIT_DICT_SIZE, 0, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
         return -1;
     }
 
-    HT proc;
-    if (initHT(&proc, INIT_DICT_SIZE, 1, INT) == -1) {
+    HT *proc = malloc(sizeof(HT));
+    if (initHT(proc, INIT_DICT_SIZE, 1, INT) == -1) {
         write(2, "No space for Hashtable", 23);
         return -1;
     }
@@ -482,8 +484,9 @@ int main(int argc, char const *argv[]) {
             read(fd_leitura, pipeRead, atoi(tamanhoPedido)); // falta tratar erros
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
+                char *string;
                 for (r = 0, w = proc.aux_array.last; w != -1 && r < proc.used; w = proc.aux_array.array[POS(w, 0)]) {
-                    
+                    (Pedido *) proc.tbl[w].value
                 }
                 //não esquecer de fazer o status
                 //tem diferente input
@@ -502,7 +505,7 @@ int main(int argc, char const *argv[]) {
             } else if (strcmp(pipeParse, "proc-file") == 0) {
                 //Leitura do pedido
                 Pedido *pedido;
-                if ((w = createPedido(pipeRead, pedido, &maxs, n_pedido++)) == -1) {
+                if ((w = createPedido(pipeRead, pedido, maxs, n_pedido++)) == -1) {
                     //erro de execução
                     return -1;
                 } else if (w == 1) {
@@ -514,7 +517,7 @@ int main(int argc, char const *argv[]) {
                 }
                 //executaPedido(pedido, pasta);
                 //avisar o cliente que foi posto em pending
-                pedido = choosePendingQueue(pendingQ, &maxs, &curr); //já remove da pending queue
+                pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
                 if (pedido != NULL) {
                     //adicionar aos em processamento
                     //avisar o cliente que foi adicionado aos em processamento
