@@ -48,9 +48,9 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
  * @param dest Pedido a se libertar.
  */
 void deepFreePedido(Pedido *dest) {
-    if (dest->hashtable) {
-        freeHT(dest->hashtable);
-    }
+    //if (dest->hashtable) {
+    //    freeHT(dest->hashtable);
+    //}
     free(dest->in);
     free(dest->out);
     free(dest->prio);
@@ -493,7 +493,7 @@ int main(int argc, char const *argv[]) {
             } else if (strcmp(pipeParse, "proc-file") == 0) {
                 //Leitura do pedido
                 Pedido *pedido;
-                if ((w = createPedido(pipeRead, pedido, &maxs, n_pedido++)) == -1) {
+                if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
                     //erro de execução
                     return -1;
                 } else if (w == 1) {
