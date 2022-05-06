@@ -396,7 +396,7 @@ int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
     }
 }
 
-int PedidoToString(Pedido *pedido, char **dest) {
+int pedidoToString(Pedido *pedido, char **dest) {
     int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 14;
     (*dest) = malloc(n);
     sprintf((*dest), "%s %s %s %s %s", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido);
@@ -406,16 +406,11 @@ int PedidoToString(Pedido *pedido, char **dest) {
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
-    if((mkfifo("entrada", 0666)) == -1){
-        write(2, "Failed to create Named pipe entrada\n", 37);
-        return -1;
-    }
     int fd_leitura, fd_escrita;
     if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
         return -1;
     }
-
     if ((fd_escrita = open("entrada", O_WRONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
         return -1;
@@ -427,16 +422,14 @@ int main(int argc, char const *argv[]) {
         write(2, "Failed to open config file\n", 28);
         return -1;
     }
-
-    char *pasta = argv[2];
-    //lembrar da pasta em algum sítio para os executáveis
-    //eventualmente fazer sprintf("%s/%s", nome da pasta, nome da transforamação)
     
     HT *maxs = malloc(sizeof(HT));
     if (initHT(maxs, INIT_DICT_SIZE, 1, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
+        freeHT(maxs);
         return -1;
     }
+    //incializar a hashtables dos máximos
     if (readConfig(fdConfig, maxs) == -1) {
         write(2, "Failed to read config", 22);
         return -1;
@@ -446,28 +439,42 @@ int main(int argc, char const *argv[]) {
     HT *curr = malloc(sizeof(HT));
     if (initHT(curr, INIT_DICT_SIZE, 0, STRING) == -1) {
         write(2, "No space for Hashtable", 23);
+        freeHT(maxs);
+        freeHT(curr);
         return -1;
     }
 
     HT *proc = malloc(sizeof(HT));
     if (initHT(proc, INIT_DICT_SIZE, 1, INT) == -1) {
         write(2, "No space for Hashtable", 23);
+        freeHT(maxs);
+        freeHT(curr);
+        freeHT(proc);
         return -1;
     }
-    //todo preencher o dicionário com 1º argumento
-    //parse desse ficheiro .config: readln c/ sequencial até ' '
+
     int r, w, bytes_read;
     PendingQueue pendingQ[MAX_PRIORITY+1];
     for (r = 0; r<MAX_PRIORITY+1; r++) {
         pendingQ[r].end = NULL;
         pendingQ[r].start = NULL;
     }
+
     //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
     int pipe_input[2];
     if (pipe(pipe_input) == -1) {
         write(2, "Failed Pipe to Input\n", 22);
+        freeHT(maxs);
+        freeHT(curr);
+        freeHT(proc);
         return -1;
     }
+
+    if((mkfifo("entrada", 0666)) == -1){
+        write(2, "Failed to create Named pipe entrada\n", 37);
+        return -1;
+    }
+
     int pid_input_child, status, term, n_pedido = 1;
     createInputChild(pipe_input, &pid_input_child, fd_leitura);
     while(1) {
@@ -476,6 +483,9 @@ int main(int argc, char const *argv[]) {
             char pipeRead[MAX_BUFF], tamanhoPedido[4];
             if (bytes_read = read(pipe_input[0], tamanhoPedido, 4) == -1) {
                 write(2, "Failed to read from Input Pipe\n", 32);
+                freeHT(maxs);
+                freeHT(curr);
+                freeHT(proc);
                 return -1;
             }
             char pipeParse[32];
@@ -485,34 +495,31 @@ int main(int argc, char const *argv[]) {
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
                 char *string;
-                for (r = 0, w = proc.aux_array.last; w != -1 && r < proc.used; w = proc.aux_array.array[POS(w, 0)]) {
-                    
+                for (r = proc.aux_array.last; r != -1; w = proc.aux_array.array[POS(r, 0)]) {
+                    bytes_read = pedidoToString((Pedido *) proc->tbl[r].value, &string);
+                    //term = open("proc->client_pid", O_WRONLY)
+                    //write(term, string, bytes_read)
+                    free(string);
                 }
-                //não esquecer de fazer o status
-                //tem diferente input
-                //envia ao cliente o que ele tem de imprimir
-                //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
-                    //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
-                /*
-                int i, n;
-                char *string;
-                for (i = 0; i < n_pedidos_processamento; i++) {
-                    n = strArrayToString(pedidos_processamento[i]->n_transfs + 4, pedidos_processamento[i]->transfs, &string, 0);
-                    write(1, string, n); ou se calhar tem de escrever o cliente?
-                }
-                o pedidos processamento pode não ser array, pode ter de ser com apontadores, depende da implementação
-                */
             } else if (strcmp(pipeParse, "proc-file") == 0) {
                 //Leitura do pedido
                 Pedido *pedido;
-                if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
+                if ((w = createPedido(pipeRead, &pedido, maxs, n_pedido++)) == -1) {
                     //erro de execução
+                    freeHT(maxs);
+                    freeHT(curr);
+                    freeHT(proc);
+                    deepFreePedido(pedido);
                     return -1;
                 } else if (w == 1) {
                     //pedido rejeitado
                     deepFreePedido(pedido);
                     //avisar o cliente que deu asneira
                 } else if (addPendingQueue(pedido, pendingQ)==-1) {
+                    freeHT(maxs);
+                    freeHT(curr);
+                    freeHT(proc);
+                    deepFreePedido(pedido);
                     return -1;
                 }
                 //executaPedido(pedido, pasta);
@@ -521,7 +528,7 @@ int main(int argc, char const *argv[]) {
                 if (pedido != NULL) {
                     //adicionar aos em processamento
                     //avisar o cliente que foi adicionado aos em processamento
-                    r = executaPedido(pedido, pasta);
+                    r = executaPedido(pedido, argv[2]);
                 }
             } else {
                 //erro de input do cliente, rejeitar o pedido
@@ -563,6 +570,13 @@ int main(int argc, char const *argv[]) {
     //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
     //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
     //freeHT(maxs);
+    close(fd_escrita);
     close(fd_leitura);
+    close(pipe_input[0]);
+    close(pipe_input[1]);
+    freeHT(maxs);
+    freeHT(curr);
+    freeHT(proc);
+    deepFreePedido(pedido);
     return 0;
 }
