@@ -505,11 +505,7 @@ int main(int argc, char const *argv[]) {
             } else if (strcmp(pipeParse, "proc-file") == 0) {
                 //Leitura do pedido
                 Pedido *pedido;
-<<<<<<< HEAD
-                if ((w = createPedido(pipeRead, pedido, maxs, n_pedido++)) == -1) {
-=======
                 if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
->>>>>>> 58fc3e6ae76db4c6e2b7e7a06a637f58dfa40075
                     //erro de execução
                     return -1;
                 } else if (w == 1) {
