@@ -323,15 +323,15 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
  */
 int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     char transf[MAX_TRANSF_SIZE];
-    int i, s, new, c, max;
-    for (i = 0, s = 0; i<pedido->hashtable->size && s<pedido->hashtable->used; i++) {
-        
-        if (!(isfreeHT(pedido->hashtable, i))) {
-            s++;
-            readHT(maxs, pedido->hashtable->tbl[i].key, &max);
-            readHT(pedido->hashtable, pedido->hashtable->tbl[i].key, &new);
-            if (readHT(curr, pedido->hashtable->tbl[i].key, &c) == -1) {
-                c = 0;
+    int i, s, *new, *c, *max;
+    for (i = 0, s = maxs->aux_array.last; s != -1 && i<pedido->hashtable->used; i++, s = maxs->aux_array.array[POS(s, 0)]) {
+        strcpy(transf, (char *) maxs->tbl[i].key);
+        if (readHT(pedido->hashtable, (void *) transf, (void **) &new) != -1) {
+            readHT(maxs, trasnf, &max);
+            if (readHT(curr, transf, &c) == -1) {
+                c = malloc(sizeof(int));
+                *c = 0;
+                writeHT(curr, transf, c);
             }
             if (max - c < new) {
                 return 0;
@@ -342,7 +342,6 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 }
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
-    //não funfa c:
     int i = MAX_TRANSF_SIZE;
     LList *nodo;
     Pedido *pedido;
