@@ -394,6 +394,13 @@ int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
     }
 }
 
+char *PedidoToString(Pedido *pedido) {
+    int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 14;
+    char *string = malloc(n);
+    sprintf(string, "%s %s %s %s %s", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido);
+    return string;
+}
+
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
@@ -475,10 +482,12 @@ int main(int argc, char const *argv[]) {
             read(fd_leitura, pipeRead, atoi(tamanhoPedido)); // falta tratar erros
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
-
+                for (r = 0, w = proc.aux_array.last; w != -1 && r < proc.used; w = proc.aux_array.array[POS(w, 0)]) {
+                    
+                }
                 //não esquecer de fazer o status
                 //tem diferente input
-                //apenas imprime o que está a ser processado (não o que está à espera)
+                //envia ao cliente o que ele tem de imprimir
                 //muito provavelmente vamos ter de tirar da lista/queue/heap ready e pôr numa lista "in proccessing"
                     //fica muito mais fácil de saber quais os que contam contra os maxs e depois tirar quando acabarem
                 /*
