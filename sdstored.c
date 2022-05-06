@@ -56,7 +56,6 @@ void deepFreePedido(Pedido *dest) {
     free(dest->out);
     free(dest->prio);
     free(dest->pedido);
-    free(dest);
 }
 
 /**
@@ -344,7 +343,7 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
 }
 
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
-    int i = MAX_TRANSF_SIZE;
+    int i = MAX_PRIORITY;
     LList *nodo;
     Pedido *pedido;
     while (i >= 0 && queue[i].start == NULL) i--;
@@ -485,7 +484,7 @@ int main(int argc, char const *argv[]) {
             StringToBuffer(r, w, pipeRead, pipeParse)
             if (strcmp(pipeParse, "status") == 0) {
                 char *string;
-                for (r = 0, w = proc.aux_array.last; w != -1 && r < proc.used; w = proc.aux_array.array[POS(w, 0)]) {
+                for (r = 0, w = proc->aux_array.last; w != -1 && r < proc->used; w = proc->aux_array.array[POS(w, 0)]) {
                     
                 }
                 //não esquecer de fazer o status
@@ -505,7 +504,7 @@ int main(int argc, char const *argv[]) {
             } else if (strcmp(pipeParse, "proc-file") == 0) {
                 //Leitura do pedido
                 Pedido *pedido;
-                if ((w = createPedido(pipeRead, &pedido, &maxs, n_pedido++)) == -1) {
+                if ((w = createPedido(pipeRead, &pedido, maxs, n_pedido++)) == -1) {
                     //erro de execução
                     return -1;
                 } else if (w == 1) {
