@@ -15,7 +15,7 @@ int main(int argc, char const *argv[])
     //1+ -> procfile
     if (argc == 1) {
         write(1, "./sdstore status\n", 18);
-        write(1, "./sdstore proc-file <-p priority> input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 105);
+        write(1, "./sdstore proc-file <-p priority> input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 110);
         return 0;
     } else if (argc == 2 && strcmp(argv[1], "status") == 0) {
         //do status, pedir ao servidor o status das tasks em execução e dos limites
@@ -48,16 +48,16 @@ int main(int argc, char const *argv[])
             write(2, "Failed to open the named pipe\n", 31);
             exit(-1);
         }
-        write(fd_escrita, string, strlen(string));
+        write(fd_escrita, string, n);
         close(fd_escrita); // fechar por agora
         free(string);
         //vai ler e escrever 3 vezes
         int bytes_read;
         char buffer[32];
-        for (i = 0; i<2;i++) {
+        //for (i = 0; i<2;i++) {
             //read pipe com nome NÃO LÊ NADA QUE ISTO DÁ ASNEIRA tem de ler do pipe com nome criado aqui
-            write(1, buffer, bytes_read);
-        }
+        //    write(1, buffer, bytes_read);
+        //}
         //read pipe da conclusão
         
     }
