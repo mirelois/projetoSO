@@ -326,6 +326,7 @@ int deleteHT (HT *h, void* key) {
             h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
 
         }
+        h->used--;
 
     }
     return p;
