@@ -17,10 +17,10 @@ int strArrayToString(int n, char *array[], char **dest) {
         }
         //if(tamanho > 4) return -1 -> possibilidade ? xD
         int j;
-        for(j=0; j < 4-i; i++)
+        for(j=0; j < 4-i; j++)
             target[j] = '0';
         target += j;
-        sprintf(target, "%d %s", i, array[0]);
+        sprintf(target, "%d%s", c+s+1, array[0]);
         target += strlen(array[0]) + i;
         for(i = 1; i<n; i++) {
             strcat(target, sep);
