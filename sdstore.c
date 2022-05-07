@@ -32,16 +32,16 @@ int main(int argc, char const *argv[])
                 //array argv pimba para o pipe (de uma vez?)
                 //o client dá parse para um Pedido e escreve em bytes lá
         pid_t pid = getpid();
-        char buffer[32];
+        char pidBuffer[32]; // 32 inicial mas são menos que isto 
         char *string, prio[2] = "0";
         int i = 2, n, fd_escrita, fd_leitura;
 
-        sprintf(buffer, "%d", pid);
-        if((mkfifo(buffer, 0666)) == -1){
+        sprintf(pidBuffer, "%d", pid);
+        if((mkfifo(pidBuffer, 0666)) == -1){
             write(2, "Failed to create the named pipe\n", 33);
             return -1;
         }
-        if ((fd_leitura = open(buffer, O_RDONLY)) == -1) {
+        if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
             write(2, "Failed to open the named pipe\n", 31);
             return -1;
         }
@@ -74,6 +74,7 @@ int main(int argc, char const *argv[])
         //}
         //read pipe da conclusão
         close(fd_leitura);
+        unlink(pidBuffer);
     }
     return 0;
 }

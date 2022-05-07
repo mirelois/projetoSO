@@ -405,6 +405,12 @@ int pedidoToString(Pedido *pedido, char **dest) {
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
+
+    if((mkfifo("entrada", 0666)) == -1){
+        write(2, "Failed to create Named pipe entrada\n", 37);
+        return -1;
+    }
+    
     int fd_leitura, fd_escrita;
     if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
@@ -466,11 +472,6 @@ int main(int argc, char const *argv[]) {
         freeHT(maxs);
         freeHT(curr);
         freeHT(proc);
-        return -1;
-    }
-
-    if((mkfifo("entrada", 0666)) == -1){
-        write(2, "Failed to create Named pipe entrada\n", 37);
         return -1;
     }
 
