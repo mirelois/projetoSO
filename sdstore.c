@@ -34,18 +34,14 @@ int main(int argc, char const *argv[])
         pid_t pid = getpid();
         char pidBuffer[32]; // 32 inicial mas são menos que isto 
         char *string, prio[2] = "0";
-        int i = 2, n, fd_escrita, fd_leitura;
+        int i = 2, n, fd_escrita, fd_leitura, bytesRead, j;
 
         sprintf(pidBuffer, "%d", pid);
         if((mkfifo(pidBuffer, 0666)) == -1){
             write(2, "Failed to create the named pipe\n", 33);
             return -1;
         }
-        if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
-            write(2, "Failed to open the named pipe\n", 31);
-            return -1;
-        }
-
+        
         if (strcmp(argv[2], "-p") == 0) {
             n = atoi(argv[3]);
             if (n >= 0 && n < 5)
@@ -62,9 +58,19 @@ int main(int argc, char const *argv[])
             exit(-1);
         }
         write(fd_escrita, string, n);
-        printf("%s\n", string);
+        //printf("%s\n", string); -> teste para ver string, -- apagar --
         close(fd_escrita); // fechar por agora
         free(string);
+
+        if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
+            write(2, "Failed to open the named pipe\n", 31);
+            return -1;
+        }
+
+        char buffer[60]; // tamanho 60 por agora (estimativa maxima)
+        while((bytesRead = read(fd_leitura, buffer, 60)) > 0){ // tenta ler tudo?
+            write(1, buffer, bytesRead);
+        }
         //vai ler e escrever 3 vezes
         //int bytes_read;
         //char buffer[32];

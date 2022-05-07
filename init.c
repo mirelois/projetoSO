@@ -81,4 +81,3 @@ int readConfig(int fd, HT *hash_table) {
 //esta está testada e funciona
 //ver os casos em que pode falhar em -1
 
-
