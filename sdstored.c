@@ -80,7 +80,15 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     //supor que tem a prioridade, in e out
     int r = 10, w, i; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
-    //eu sei que recebi pelo menos 5 coisas, com o proc-file   
+    //eu sei que recebi pelo menos 5 coisas, com o proc-file
+    w = 0;
+    StringToBuffer(r, w, string, buffer);
+    int fd;
+    if((fd = open(buffer, O_WRONLY)) == -1){
+        write(2, "Failed to open the named pipe\n", 31);
+        exit(-1);
+    }
+    (*dest)->fd = fd;
     w = 0;
     StringToBuffer(r, w, string, buffer)
     (*dest)->prio = strdup(buffer);
@@ -107,7 +115,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
         }
     }
     (*dest)->n_transfs = i;
-    
     return 0;
 }
 
@@ -192,6 +199,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
         //se não conseguires dar fork ao manager?
         write(2,"Failed Fork to Manager", 23);
     } else if (manager == 0) {
+        write(pedido->fd, "processing\n", 12);
         int r=0, w, tamanhoinicial = strlen(pasta);
         char buffer[tamanhoinicial + 33];
         for(w=0; pasta[w]!='\0'; w++)
@@ -271,6 +279,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             //2) fazemos write para um pipe (saber o tamanho) e fazer dup do pipe para o stdin
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
+        write(pedido->fd, "concluded\n", 11); // Falta o avançado
     }// else {
      //   int status;
      //   wait(&status);
@@ -515,7 +524,7 @@ int main(int argc, char const *argv[]) {
                     //pedido rejeitado
                     deepFreePedido(pedido);
                     //avisar o cliente que deu asneira
-                } else if (addPendingQueue(pedido, pendingQ)==-1) {
+                } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
                     freeHT(maxs);
                     freeHT(curr);
                     freeHT(proc);
