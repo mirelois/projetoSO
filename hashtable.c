@@ -17,7 +17,7 @@ int hash(HT* h, void* key_void) {
 
     int ret = 0;
 
-    if(h->type == STRING) {
+    if(h->key_type == STRING) {
 
         char* key = (char*)key_void;
         
@@ -26,7 +26,7 @@ int hash(HT* h, void* key_void) {
            ret += key[i];
         }
 
-    }else if(h->type == INT) {
+    }else if(h->key_type == INT) {
 
         ret = *((int*)key_void);
 
@@ -39,19 +39,30 @@ int hash(HT* h, void* key_void) {
 }
 
 int isfreeHT(HT* h, int p) {
-    if(h->type == STRING) {
+    if(h->key_type == STRING) {
         return strcmp((char*)h->tbl[p].key, EMPTY_STRING) == 0 || strcmp((char*)h->tbl[p].key, DELETED_STRING) == 0;
     }
-    if(h->type == INT) {
+    if(h->key_type == INT) {
         return *((int*)h->tbl[p].key) == EMPTY_INT || *((int*)h->tbl[p].key) == DELETED_INT;
+    }
+
+}
+
+int freeValueHT(HT* h, int p) {
+    if(h->value_type == PEDIDO) {
+            deepFreePedido(h->tbl[p].value);
+        }else if (h->value_type == INT) {
+            free(h->tbl[p].value);
+        }else {
+            return -1;
     }
 }
 
 int keycmp(HT* h, void* key1, void* key2) {
-    if(h->type == STRING) {
+    if(h->key_type == STRING) {
         return strcmp((char*)key1, (char*)key2);
     }
-    if(h->type == INT) {
+    if(h->key_type == INT) {
         return *((int*)key1) - *((int*)key2);
     }
 }
@@ -64,7 +75,7 @@ int keycmp(HT* h, void* key1, void* key2) {
  * @param size tamanho do dicionario
  * @return 0 se o dicionario for inicializado corretamente e -1 caso contrario
  */
-int initHT(HT *h, int size, int aux_array_flag, int type) {
+int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
 
     if (aux_array_flag) {
         if((h->aux_array.array = malloc(2*size*sizeof(int))) == NULL) {
@@ -81,12 +92,13 @@ int initHT(HT *h, int size, int aux_array_flag, int type) {
         return -1;
     }
 
-    h->type = type;
+    h->value_type = value_type;
+    h->key_type = key_type;
     h->aux_array.aux_array_flag = aux_array_flag;
     h->size = size;
     h->used = 0;
 
-    if(h->type == STRING) {
+    if(h->key_type == STRING) {
 
         for (int i=0; i<size; i++) {
             h->tbl[i].key = (void*)malloc(MAX_TRANSF_SIZE*sizeof(char));
@@ -94,7 +106,7 @@ int initHT(HT *h, int size, int aux_array_flag, int type) {
             h->tbl[i].value = NULL;
         }
 
-    }else if(h->type == INT) {
+    }else if(h->key_type == INT) {
         
         for (int i=0; i<size; i++) {
             pid_t* tmp = malloc(sizeof(pid_t));
@@ -114,7 +126,6 @@ void AuxFree(HT *h) {
         free(h->aux_array.array);
     }
     for(int i = 0; i < h->size; i++) {
-
         free(h->tbl[i].key);
     }
     free(h->tbl);
@@ -134,13 +145,13 @@ void freeHT(HT *h) {
     for(int i = 0; i < h->size; i++) {
         
         if(h->tbl[i].value != NULL){
-            free(h->tbl[i].value);
+            freeValueHT(h, i);
         }
 
         free(h->tbl[i].key);
     }
     free(h->tbl);
-    //free(h);
+    free(h);
 }
 
 /**
@@ -175,29 +186,39 @@ int writeHTaux (HT *h, void* key, void* value) {
     int flag = 1;
 
     for(p; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
-    
-    free(h->tbl[p].value);
 
-    if (!flag) {
-        (h->tbl)[p].value = value;
+    freeValueHT(h, p);
+
+    //copy value from value to dict
+    if (h->value_type == PEDIDO) {
+        h->tbl[p].value = value;
+    }else if (h->value_type == INT) {
+        int* tmp = malloc(sizeof(int));
+        *tmp = *(int*)value;
+        h->tbl[p].value = (void*)tmp;
     }else {
+        return -1;
+    }
+    //case new key put it on dict
+    
+    if (flag) {
 
-    if (h->aux_array.aux_array_flag) {
-        int last = h->aux_array.last;
-        if (last != -1) {
-            h->aux_array.array[POS(last,1)] = p;
+        if (h->aux_array.aux_array_flag) {
+            int last = h->aux_array.last;
+            if (last != -1) {
+                h->aux_array.array[POS(last,1)] = p;
+            }
+            h->aux_array.array[POS(p,0)] = last;
+            h->aux_array.last = p;
         }
-        h->aux_array.array[POS(p,0)] = last;
-        h->aux_array.last = p;
-    }
 
-    if (h->type == STRING) {
-        strcpy(h->tbl[p].key, (char*)key);
-    }else if (h->type == INT) {
-        *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
-    }
-    (h->tbl)[p].value = value;
-    h->used++;
+        if (h->key_type == STRING) {
+            strcpy(h->tbl[p].key, (char*)key);
+        }else if (h->key_type == INT) {
+            *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
+        }
+
+        h->used++;
 
     }
 
@@ -234,7 +255,7 @@ int writeHT (HT *h, void* key, void* value) {
         for(new_size = (h->size)*2; !isprime(new_size); new_size++);
 
 
-        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->type) == -1){
+        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->key_type, h->value_type) == -1){
             return -1;
         }
 
@@ -244,11 +265,13 @@ int writeHT (HT *h, void* key, void* value) {
             }
         }
 
+        AuxFree(h);
+
         if (h->aux_array.aux_array_flag) {
             h->aux_array.array = new_h->aux_array.array;
             h->aux_array.last = new_h->aux_array.last;
         }
-        AuxFree(h);
+        
         h->tbl = new_h->tbl;
         h->size = new_h->size;
         h->used = new_h->used;
@@ -271,9 +294,9 @@ int writeHT (HT *h, void* key, void* value) {
 int readHT(HT *h, void* key, void** value){
     int p , r = -1 , c = h->size, flg = 1;
     void* empty;
-    if (h->type == STRING) {
+    if (h->key_type == STRING) {
         empty = (void*)EMPTY_STRING;
-    }else if (h->type == INT) {
+    }else if (h->key_type == INT) {
         int tmp = EMPTY_INT;
         empty = (void*)&tmp;
     }
@@ -303,13 +326,13 @@ int deleteHT (HT *h, void* key) {
 
     if(p != -1) {
 
-        if (h->type == STRING) {
+        if (h->key_type == STRING) {
             strcpy(h->tbl[p].key, DELETED_STRING);
-        }else if (h->type == INT) {
+        }else if (h->key_type == INT) {
             *(pid_t*)(h->tbl[p].key) = DELETED_INT;
         }
 
-        free(h->tbl[p].value);
+        freeValueHT(h, p);
         h->tbl[p].value = NULL;
 
         if (h->aux_array.aux_array_flag) {
@@ -329,4 +352,41 @@ int deleteHT (HT *h, void* key) {
 
     }
     return p;
+}
+
+int printHT(HT *h) {
+    if(h->key_type == INT){
+        for(int i = 0; i < h->size; i++) {
+            if((h->tbl)[i].value != NULL){
+                printf("%d -> (%d,%d)\n",i ,*((int*)((h->tbl)[i].key)), *(int*)((h->tbl)[i].value));
+            }else{
+                printf("%d -> (%d,NULL)\n",i ,*((int*)((h->tbl)[i].key)));
+            }
+            
+        }
+    }else if(h->key_type == STRING) {
+        for(int i = 0; i < h->size; i++) {
+            printf("%d -> (%s,%d)\n",i ,(char*)((h->tbl)[i].key), *((int*)(h->tbl)[i].value));
+        }
+    }
+    putchar('\n');
+    return 0;
+    
+}
+
+void deepFreePedido(Pedido *dest) {
+    if (dest->hashtable) {
+        freeHT(dest->hashtable);
+    }
+    free(dest->in);
+    free(dest->out);
+    free(dest->prio);
+    free(dest->pedido);
+    close(dest->fd);
+}
+
+int printPedido(Pedido *p) {
+    printf("id->%d\nn_tranfs->%d\nprio->%s\npedido->%s\nin->%s\nout->%s\n", p->id, p->n_transfs, p->prio,p->pedido, p->in, p->out);
+    printf("hashtable:\n");
+    printHT(p->hashtable);
 }
