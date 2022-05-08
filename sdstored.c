@@ -44,7 +44,7 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
     if (readHT(h, transf, (void**) &curr) == -1) {
         c = 1;
     } else {
-        c = (*curr)
+        c = (*curr);
     }
     if (c > *max) {
         //rejeitar o pedido
@@ -206,7 +206,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
                     escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
                     //sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     StringToBuffer(r, w, pedido->pedido, buffer);
-                    int ret = execl(buffer, buffer);
+                    int ret = execl(buffer, buffer, (char *) NULL);
                     write(2, "Failed Exec Manager Child\n", 27);
                     _exit(ret);
                 default: ;
