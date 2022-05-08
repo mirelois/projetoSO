@@ -187,7 +187,9 @@ int writeHTaux (HT *h, void* key, void* value) {
 
     for(p; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
 
-    freeValueHT(h, p);
+    if(h->tbl[p].value != NULL){
+        freeValueHT(h, p);
+    }
 
     //copy value from value to dict
     if (h->value_type == PEDIDO) {
