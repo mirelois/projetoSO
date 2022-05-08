@@ -456,8 +456,9 @@ int main(int argc, char const *argv[]) {
         pendingQ[r].start = NULL;
     }
 
-    int status, n_pedido = 1, bytes_read_pipe;
+    int status, n_pedido = 1, bytes_read_pipe, pid_read;
     char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
+    Pedido *pedido_read;
     bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);
     r = 0;
     while(flag_term && 1) {
@@ -467,7 +468,9 @@ int main(int argc, char const *argv[]) {
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         }
         pipeParse[w] = '\0';
-        if (pipeRead[r] == ' ' && flag_term) {
+        pid_read = atoi(pipeParse);
+        int flag = readHT(proc, (void *) &pid_read, (void **) &pedido_read);
+        if (flag == -1 && flag_term) {
             //deve de ser input
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
@@ -537,7 +540,7 @@ int main(int argc, char const *argv[]) {
                     //borradovski
                 }
             }
-        } else if (pipeRead[r] == ' ') {
+        } else if (flag == -1) {
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
                 write(2, "Failed to open pipe to client\n", 31);
@@ -549,15 +552,15 @@ int main(int argc, char const *argv[]) {
                 r++;
                 TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
             }
-        } else if (pipeRead[r] == '\0') {
+        } else if (flag >= 0) {
             //deve de ser termino do manager
             r++;
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
-            int key = atoi(pipeParse);
+            //int key = atoi(pipeParse);
             //retirar aos proc
-            waitpid(key, &status, 0);
+            waitpid(flag, &status, 0);
             //testar os erros do status
-            deleteHT(proc, &key);
+            deleteHT(proc, &flag);
 
             Pedido *pedido;
             pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
