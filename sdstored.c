@@ -511,9 +511,8 @@ int main(int argc, char const *argv[]) {
                             printf("%s\n", pipeRead);
                             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                         }
-                        pipeParse[w++] = pipeParse[r++];
+                        pipeParse[w++] = pipeParse[r];
                         printf("cliclo\n");
-                        TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     }
                     printf("ola\n");
                     printf("aqui%s\n", pipeParse);
