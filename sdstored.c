@@ -112,19 +112,19 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
 void escolheEntradaSaidaOneTransf(char *in, char *out){
     int fd_i, fd_o;
     if((fd_i = open(in, O_RDONLY)) == -1){
-        write(2,"Failed to open file in", 23);
+        write(2,"Failed to open file in\n", 24);
         _exit(-1);
     }
     if((fd_o = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-        write(2, "Failed to open file out", 24);
+        write(2, "Failed to open file out\n", 25);
         _exit(-1);
     } //pôr if's à volta dos opens (já pus -- carlos)
     if((dup2(fd_i, 0)) == -1){
-        write(2, "Failed to dup the input", 24);
+        write(2, "Failed to dup the input\n", 25);
         _exit(-1);
     }
     if((dup2(fd_o, 1)) == -1){
-        write(2, "Failed to dup the output", 25);
+        write(2, "Failed to dup the output\n", 26);
         _exit(-1);
     } //pôr if's à volta dos dups (já pus -- carlos)
     close(fd_i);
@@ -134,46 +134,46 @@ void escolheEntradaSaidaOneTransf(char *in, char *out){
 void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
     if(i == pedido->n_transfs-1){
         if((dup2(p[i-1][0], 0)) == -1){
-            write(2, "Failed to dup the input", 24);
+            write(2, "Failed to dup the input\n", 25);
             _exit(-1);
         }
         close(p[i-1][0]);
         int fd_o;
         if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-            write(2, "Failed to open file out", 24);
+            write(2, "Failed to open file out\n", 25);
             _exit(-1);
         }
         if((dup2(fd_o, 1)) == -1){
-            write(2, "Failed to dup the output", 25);
+            write(2, "Failed to dup the output\n", 26);
             _exit(-1);
         }
         close(fd_o);
     }else if(i == 0){
         int fd_i;
         if((fd_i = open(pedido->in, O_RDONLY)) == -1){
-            write(2, "Failed to open file in", 23);
+            write(2, "Failed to open file in\n", 24);
             _exit(-1);
         }
         if((dup2(fd_i, 1)) == -1){
-            write(2, "Failed to dup the input", 24);
+            write(2, "Failed to dup the input\n", 25);
             _exit(-1);
         }
         close(fd_i);
         close(p[i][0]);
         if((dup2(p[i][1], 1)) == -1){
-            write(2, "Failed to dup the output", 25);
+            write(2, "Failed to dup the output\n", 26);
             _exit(-1);
         }
         close(p[i][1]);
     }else{
         close(p[i][0]);
         if((dup2(p[i-1][0], 0)) == -1){
-            write(2, "Failed to dup the input", 24);
+            write(2, "Failed to dup the input\n", 25);
             _exit(-1);
         }
         close(p[i-1][0]);
         if((dup2(p[i][1], 1)) == -1){
-            write(2, "Failed to dup the output", 25);
+            write(2, "Failed to dup the output\n", 26);
             _exit(-1);
         }
         close(p[i][1]);
@@ -188,7 +188,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
     pid_t manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
-        write(2,"Failed Fork to Manager", 23);
+        write(2,"Failed Fork to Manager\n", 24);
     } else if (manager == 0) {
         write(pedido->fd, "processing\n", 12);
         int r=0, w, tamanhoinicial = strlen(pasta);
@@ -201,20 +201,20 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             //char buffer[strlen(pasta) + w + 1];
             switch(fork()){
                 case -1:
-                    write(2, "Failed Fork Manager to Child", 29);
+                    write(2, "Failed Fork Manager to Child\n", 30);
                     _exit(-1);
                 case 0:
                     escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
                     //sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     StringToBuffer(r, w, pedido->pedido, buffer);
                     int ret = execl(buffer, buffer);
-                    write(2, "Failed Exec Manager Child", 26);
+                    write(2, "Failed Exec Manager Child\n", 27);
                     _exit(ret);
                 default: ;
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                        write(2, "Failed Exec or Transf", 22);
+                        write(2, "Failed Exec or Transf\n", 23);
                         _exit(-1);
                     }
                     _exit(0);
@@ -227,20 +227,20 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             for (i = 0; i < pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
                 if(i != pedido->n_transfs-1)
                     if(pipe(p[i]) == -1){
-                        write(2, "Failed pipe", 12);
+                        write(2, "Failed pipe\n", 13);
                         _exit(-1);
                     }
                 // char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
                 switch(fork()){
                     case -1:
-                        write(2, "Failed Fork Manager to Child", 29);
+                        write(2, "Failed Fork Manager to Child\n", 30);
                         _exit(-1);
                     case 0:
                         w = tamanhoinicial;
                         StringToBuffer(r, w, pedido->pedido, buffer);
                         escolheEntradaSaida(pedido, i, p);
                         int ret = execl(buffer, buffer);
-                        write(2, "Failed Exec Manager Child", 26);
+                        write(2, "Failed Exec Manager Child\n", 27);
                         _exit(ret);
                     default:
                         if(i != pedido->n_transfs-1)
@@ -250,7 +250,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
                         int status;
                         wait(&status);
                         if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                            write(2, "Failed Exec or Transf", 22);
+                            write(2, "Failed Exec or Transf\n", 23);
                             _exit(-1);
                         }
                     }
