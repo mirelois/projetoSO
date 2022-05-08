@@ -52,19 +52,13 @@ int main(int argc, char const *argv[])
         argv[i-2] = "proc-file";
         argv[i-1] = prio;
         n = strArrayToString(argc-i+2, argv+i-2, &string, pid); //testar erro?
-        printf("%s\n", string);
-        
-        
         if((fd_escrita = open("entrada", O_WRONLY)) == -1){
             write(2, "Failed to open the named pipe\n", 31);
             exit(-1);
         }
-
-        write(fd_escrita, string, n);
+        write(fd_escrita, string, n+1);
         free(string);
         close(fd_escrita);
-
-
         if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
             write(2, "Failed to open the named pipe\n", 31);
             return -1;

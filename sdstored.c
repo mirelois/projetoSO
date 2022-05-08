@@ -485,7 +485,6 @@ int main(int argc, char const *argv[]) {
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         }
         pipeParse[w] = '\0';
-
         if (pipeRead[r] == ' ' && flag_term) {
             //deve de ser input
             int fd_pedido;
@@ -506,14 +505,18 @@ int main(int argc, char const *argv[]) {
                 if (strcmp(pipeParse, "proc-file") == 0) {
                     w = 0;
                     while (pipeRead[r] != '\0') {
-                        while (pipeRead[r] != ' ') {
+                        while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
                             pipeParse[w++] = pipeRead[r++];
+                            printf("r:%d\n", r);
+                            printf("%s\n", pipeRead);
                             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                         }
                         pipeParse[w++] = pipeParse[r++];
+                        printf("cliclo\n");
                         TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     }
-                    pipeParse[w] = '\0';
+                    printf("ola\n");
+                    printf("aqui%s\n", pipeParse);
                     r++;
                     TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     //Leitura do pedido
