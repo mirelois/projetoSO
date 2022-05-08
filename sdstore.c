@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
             write(2, "Failed to open the named pipe\n", 31);
             exit(-1);
         }
-        write(fd_escrita, string, n+1);
+        write(fd_escrita, string, n);
         free(string);
         close(fd_escrita);
         if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {

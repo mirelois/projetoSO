@@ -28,7 +28,9 @@ int strArrayToString(int n, char *array[], char **dest, pid_t pid) {
             strcat(target, array[i]);
             target += strlen(array[i]);
         }
-        return c+s+5;
+        target++;
+        *target = '\0';
+        return c+s+i+2;
     }
     return 0;
 }

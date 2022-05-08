@@ -211,7 +211,6 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
         for(w=0; pasta[w]!='\0'; w++)
             buffer[w] = pasta[w];
         buffer[w++] = '/';
-
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
         if (pedido->n_transfs == 1) {
             //char buffer[strlen(pasta) + w + 1];
@@ -369,7 +368,7 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
         nodo = queue[i].start;
         pedido = nodo->pedido;
         if (isPedidoExec(pedido, maxs, curr)) {
-            nodo = nodo->next;
+            queue[i].start = nodo->next;
             return pedido;
         }
     }
@@ -505,17 +504,11 @@ int main(int argc, char const *argv[]) {
                 if (strcmp(pipeParse, "proc-file") == 0) {
                     w = 0;
                     while (pipeRead[r] != '\0') {
-                        while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
-                            pipeParse[w++] = pipeRead[r++];
-                            printf("r:%d\n", r);
-                            printf("%s\n", pipeRead);
-                            TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
-                        }
-                        pipeParse[w++] = pipeParse[r];
-                        printf("cliclo\n");
+                        pipeParse[w++] = pipeRead[r++];
+                        TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     }
-                    printf("ola\n");
-                    printf("aqui%s\n", pipeParse);
+                    
+                    pipeParse[w] = '\0';
                     r++;
                     TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     //Leitura do pedido
