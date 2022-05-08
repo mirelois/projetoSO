@@ -36,18 +36,17 @@ void term_handler(int signum) {
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
     int *max, *curr;
-    char *s = strdup(transf);
+    
     if (readHT(maxs, transf, (void**) &max) == -1) {
         write(2, "Transformation not in config.\n", 31);
-        free(s);
         return 1;
     }
     if (readHT(h, transf, (void**) &curr) == -1) {
         curr = malloc(sizeof(int));
         (*curr) = 1;
+        char *s = strdup(transf);
         writeHT(h, s, (void*) curr);
     } else {
-        free(s);
         (*curr)++;
     }
     if (*curr > *max) {
@@ -92,7 +91,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     (*dest)->out = strdup(buffer);
     (*dest)->pedido = strdup(string+r);
     (*dest)->hashtable = malloc(sizeof(HT));
-    initHT((*dest)->hashtable, INIT_DICT_SIZE, 0, STRING);
+    initHT((*dest)->hashtable, INIT_DICT_SIZE, 0, STRING, INT);
     for(i = 0; string[r] != '\0'; i++) {
         w = 0;
         StringToBuffer(r, w, string, buffer)
@@ -397,10 +396,10 @@ int main(int argc, char const *argv[]) {
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
     signal(SIGTERM, term_handler);
 
-    if((mkfifo("entrada", 0666)) == -1){
-        write(2, "Failed to create Named pipe entrada\n", 37);
-        return -1;
-    }
+    //if((mkfifo("entrada", 0666)) == -1){
+    //    write(2, "Failed to create Named pipe entrada\n", 37);
+    //    return -1;
+    //}
 
     int fd_leitura, fd_escrita;
 
@@ -421,7 +420,7 @@ int main(int argc, char const *argv[]) {
     }
     
     HT *maxs = malloc(sizeof(HT));
-    if (initHT(maxs, INIT_DICT_SIZE, 1, STRING) == -1) {
+    if (initHT(maxs, INIT_DICT_SIZE, 1, STRING, INT) == -1) {
         write(2, "No space for Hashtable", 23);
         freeHT(maxs);
         return -1;
@@ -434,7 +433,7 @@ int main(int argc, char const *argv[]) {
 
     //fix manhoso
     HT *curr = malloc(sizeof(HT));
-    if (initHT(curr, INIT_DICT_SIZE, 0, STRING) == -1) {
+    if (initHT(curr, INIT_DICT_SIZE, 0, STRING, INT) == -1) {
         write(2, "No space for Hashtable\n", 24);
         freeHT(maxs);
         freeHT(curr);
@@ -442,7 +441,7 @@ int main(int argc, char const *argv[]) {
     }
 
     HT *proc = malloc(sizeof(HT));
-    if (initHT(proc, INIT_DICT_SIZE, 1, INT) == -1) {
+    if (initHT(proc, INIT_DICT_SIZE, 1, INT, PEDIDO) == -1) {
         write(2, "No space for Hashtable\n", 24);
         freeHT(maxs);
         freeHT(curr);
