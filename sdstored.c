@@ -510,7 +510,7 @@ int main(int argc, char const *argv[]) {
                     TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     //Leitura do pedido
                     Pedido *pedido;
-                    if ((w = createPedido(pipeParse, &pedido, maxs, n_pedido++, fd_leitura)) == -1) {
+                    if ((w = createPedido(pipeParse, &pedido, maxs, n_pedido++, fd_pedido)) == -1) {
                         //erro de execução
                         freeHT(maxs);
                         freeHT(curr);
@@ -530,6 +530,7 @@ int main(int argc, char const *argv[]) {
                     }
                     //executaPedido(pedido, pasta);
                     //avisar o cliente que foi posto em pending
+                    write(pedido->fd, "pending\n", 9);
                     pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
                     if (pedido != NULL) {
                         //adicionar aos em processamento
