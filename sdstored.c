@@ -58,22 +58,6 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
 }
 
 /**
- * @brief Libertar a memória da estrutura Pedido.
- * Utiliza a função freeHT definida para libertar hashtables.
- * @param dest Pedido a se libertar.
- */
-void deepFreePedido(Pedido *dest) {
-    if (dest->hashtable) {
-        freeHT(dest->hashtable);
-    }
-    free(dest->in);
-    free(dest->out);
-    free(dest->prio);
-    free(dest->pedido);
-    close(dest->fd);
-}
-
-/**
  * @brief Criar um objeto do tipo Pedido
  * 
  * Recebe uma string do servidor para ser colocado num Pedido.
