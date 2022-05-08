@@ -35,23 +35,23 @@ void term_handler(int signum) {
  * @return int Valor de erro se o pedido for válido ou rejeitado
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
-    int *max, *curr;
+    int *max, *curr, c = 1;
     
     if (readHT(maxs, transf, (void**) &max) == -1) {
         write(2, "Transformation not in config.\n", 31);
         return 1;
     }
     if (readHT(h, transf, (void**) &curr) == -1) {
-        curr = malloc(sizeof(int));
-        (*curr) = 1;
-        char *s = strdup(transf);
-        writeHT(h, s, (void*) curr);
+        c = 1;
     } else {
-        (*curr)++;
+        c = (*curr)
     }
-    if (*curr > *max) {
+    if (c > *max) {
         //rejeitar o pedido
         return 1;
+    } else {
+        char *s = strdup(transf);
+        writeHT(h, s, &c);
     }
     return 0;
 }
