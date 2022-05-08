@@ -14,6 +14,12 @@
         bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);\
     }\
 
+int flag_term = 1;
+
+void term_handler(int signum) {
+    flag_term = 0;
+}
+
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
@@ -411,8 +417,9 @@ int main(int argc, char const *argv[]) {
         write(2, "Failed to create Named pipe entrada\n", 37);
         return -1;
     }
-    
+
     int fd_leitura, fd_escrita;
+
     if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
         return -1;
@@ -470,7 +477,7 @@ int main(int argc, char const *argv[]) {
     char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
     bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);
     r = 0;
-    while(1) {
+    while(flag_term && 1) {
         w = 0;
         while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
             pipeParse[w++] = pipeRead[r++];
@@ -478,7 +485,7 @@ int main(int argc, char const *argv[]) {
         }
         pipeParse[w] = '\0';
 
-        if (pipeRead[r] == ' ') {
+        if (pipeRead[r] == ' ' && flag_term) {
             //deve de ser input
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
@@ -551,6 +558,18 @@ int main(int argc, char const *argv[]) {
                     //borradovski
                 }
             }
+        } else if (pipeRead[r] == ' ') {
+            int fd_pedido;
+            if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
+                write(2, "Failed to open pipe to client\n", 31);
+                //rejeita pedido
+            }
+            write(fd_pedido, "Mano seu trouxa\n", 17);
+            close(fd_pedido);
+            while (pipeRead[r] != '\0') {
+                r++;
+                TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+            }
         } else if (pipeRead[r] == '\0') {
             //deve de ser termino do manager
             r++;
@@ -560,6 +579,16 @@ int main(int argc, char const *argv[]) {
             waitpid(key, &status, 0);
             //testar os erros do status
             deleteHT(proc, &key);
+
+            Pedido *pedido;
+            pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
+            if (pedido != NULL) {
+                //adicionar aos em processamento
+                //avisar o cliente que foi adicionado aos em processamento
+                int *pid_manager = malloc(sizeof(int));
+                *pid_manager = executaPedido(pedido, argv[2]);
+                writeHT(proc, (void *) pid_manager, pedido);
+            }
         }
     }
     close(fd_escrita);
