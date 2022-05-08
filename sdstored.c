@@ -412,6 +412,7 @@ int pedidoToString(Pedido *pedido, char **dest) {
 int main(int argc, char const *argv[]) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
+    signal(SIGTERM, term_handler);
 
     if((mkfifo("entrada", 0666)) == -1){
         write(2, "Failed to create Named pipe entrada\n", 37);
