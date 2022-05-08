@@ -35,22 +35,24 @@ void term_handler(int signum) {
  * @return int Valor de erro se o pedido for válido ou rejeitado
  */
 int addTransfHT(char *transf, HT *h, HT *maxs) {
-    int *max, 
-        *curr = malloc(sizeof(int));
+    int *max, *curr;
     char *s = strdup(transf);
     if (readHT(maxs, transf, (void**) &max) == -1) {
-        write(2, "Transformation not in config.", 30);
+        write(2, "Transformation not in config.\n", 31);
+        free(s);
         return 1;
     }
     if (readHT(h, transf, (void**) &curr) == -1) {
+        curr = malloc(sizeof(int));
         (*curr) = 1;
         writeHT(h, s, (void*) curr);
     } else {
+        free(s);
         (*curr)++;
     }
     if (*curr > *max) {
         //rejeitar o pedido
-        return -1;
+        return 1;
     }
     return 0;
 }
@@ -61,9 +63,9 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
  * @param dest Pedido a se libertar.
  */
 void deepFreePedido(Pedido *dest) {
-    //if (dest->hashtable) {
-    //    freeHT(dest->hashtable);
-    //}
+    if (dest->hashtable) {
+        freeHT(dest->hashtable);
+    }
     free(dest->in);
     free(dest->out);
     free(dest->prio);
@@ -89,9 +91,9 @@ void deepFreePedido(Pedido *dest) {
 int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     *dest = malloc(sizeof(Pedido));
     (*dest)->id = n_pedido;
-    char buffer[32];
+    char buffer[33];
     //supor que tem a prioridade, in e out
-    int r = 10, w, i; //saltar o proc-file à frente
+    int r = 0, w, i; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
     //eu sei que recebi pelo menos 5 coisas, com o proc-file
     (*dest)->fd = fd;
@@ -104,7 +106,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     w = 0;
     StringToBuffer(r, w, string, buffer)
     (*dest)->out = strdup(buffer);
-
     (*dest)->pedido = strdup(string+r);
     (*dest)->hashtable = malloc(sizeof(HT));
     initHT((*dest)->hashtable, INIT_DICT_SIZE, 0, STRING);
@@ -310,7 +311,6 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
         queue[p].end->next = new;
     }
     queue[p].end = new;
-    
     if (queue[p].start == NULL) {
         queue[p].start = new;
     }
@@ -592,5 +592,6 @@ int main(int argc, char const *argv[]) {
     freeHT(maxs);
     freeHT(curr);
     freeHT(proc);
+    unlink("entrada");
     return 0;
 }
