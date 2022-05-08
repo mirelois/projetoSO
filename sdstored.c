@@ -8,6 +8,12 @@
     if (string[r] != '\0')\
         r++;\
 
+#define TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)\
+    if (r == bytes_read_pipe) {\
+        r = 0;\
+        bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);\
+    }\
+
 //estrutura de dados para implementar o dicionário dos limites
 //como determinar o número? começar com hardcode a 13
 
@@ -56,6 +62,7 @@ void deepFreePedido(Pedido *dest) {
     free(dest->out);
     free(dest->prio);
     free(dest->pedido);
+    close(dest->fd);
 }
 
 /**
@@ -73,7 +80,7 @@ void deepFreePedido(Pedido *dest) {
  * @param n_pedido Número do pedido.
  * @return int Mensagens de erro.
  */
-int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
+int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     *dest = malloc(sizeof(Pedido));
     (*dest)->id = n_pedido;
     char buffer[32];
@@ -81,13 +88,6 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido) {
     int r = 10, w, i; //saltar o proc-file à frente
     //segunda parte da string é o número de argumentos
     //eu sei que recebi pelo menos 5 coisas, com o proc-file
-    w = 0;
-    StringToBuffer(r, w, string, buffer);
-    int fd;
-    if((fd = open(buffer, O_WRONLY)) == -1){
-        write(2, "Failed to open the named pipe\n", 31);
-        exit(-1);
-    }
     (*dest)->fd = fd;
     w = 0;
     StringToBuffer(r, w, string, buffer)
@@ -280,16 +280,8 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
         write(pedido->fd, "concluded\n", 11); // Falta o avançado
-    }// else {
-     //   int status;
-     //   wait(&status);
-     //   return 0;
-     //   
-     //   //não fazer nada de jeito ou um wait não bloqueante
-     //   //sinais! quando o manager der SIGTRAP o servidor vai ver quem acabou
-     //   //o servidor só quer saber para limpar do dicionário as transformações a serem usadas
-     //   //o manager também pode logo mandar o aviso ao cliente de alguma maneira
-    //}
+        _exit(0);
+    }
     return manager;
 }
 
@@ -445,14 +437,14 @@ int main(int argc, char const *argv[]) {
     }
     //incializar a hashtables dos máximos
     if (readConfig(fdConfig, maxs) == -1) {
-        write(2, "Failed to read config", 22);
+        write(2, "Failed to read config\n", 23);
         return -1;
     }
 
     //fix manhoso
     HT *curr = malloc(sizeof(HT));
     if (initHT(curr, INIT_DICT_SIZE, 0, STRING) == -1) {
-        write(2, "No space for Hashtable", 23);
+        write(2, "No space for Hashtable\n", 24);
         freeHT(maxs);
         freeHT(curr);
         return -1;
@@ -460,132 +452,119 @@ int main(int argc, char const *argv[]) {
 
     HT *proc = malloc(sizeof(HT));
     if (initHT(proc, INIT_DICT_SIZE, 1, INT) == -1) {
-        write(2, "No space for Hashtable", 23);
+        write(2, "No space for Hashtable\n", 24);
         freeHT(maxs);
         freeHT(curr);
         freeHT(proc);
         return -1;
     }
 
-    int r, w, bytes_read;
+    int r, w;
     PendingQueue pendingQ[MAX_PRIORITY+1];
     for (r = 0; r<MAX_PRIORITY+1; r++) {
         pendingQ[r].end = NULL;
         pendingQ[r].start = NULL;
     }
 
-    //depois do servidor ser executado, fica à espera de ler do pipe com nome a instrução
-    int pipe_input[2];
-    if (pipe(pipe_input) == -1) {
-        write(2, "Failed Pipe to Input\n", 22);
-        freeHT(maxs);
-        freeHT(curr);
-        freeHT(proc);
-        return -1;
-    }
-
-    int pid_input_child, status, term, n_pedido = 1;
-    createInputChild(pipe_input, &pid_input_child, fd_leitura);
+    int status, n_pedido = 1, bytes_read_pipe;
+    char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
+    bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);
+    r = 0;
     while(1) {
-        term = wait(&status);
-        if (term = pid_input_child) {
-            char pipeRead[MAX_BUFF], tamanhoPedido[4];
-            if (bytes_read = read(pipe_input[0], tamanhoPedido, 4) == -1) {
-                write(2, "Failed to read from Input Pipe\n", 32);
-                freeHT(maxs);
-                freeHT(curr);
-                freeHT(proc);
-                return -1;
-            }
-            char pipeParse[32];
-            r = 0;
-            w = 0;
-            read(fd_leitura, pipeRead, atoi(tamanhoPedido)); // falta tratar erros
-            StringToBuffer(r, w, pipeRead, pipeParse)
-            if (strcmp(pipeParse, "status") == 0) {
-                char *string;
-                for (r = proc.aux_array.last; r != -1; w = proc.aux_array.array[POS(r, 0)]) {
-                    bytes_read = pedidoToString((Pedido *) proc->tbl[r].value, &string);
-                    //term = open("proc->client_pid", O_WRONLY)
-                    //write(term, string, bytes_read)
-                    free(string);
-                }
-            } else if (strcmp(pipeParse, "proc-file") == 0) {
-                //Leitura do pedido
-                Pedido *pedido;
-                if ((w = createPedido(pipeRead, &pedido, maxs, n_pedido++)) == -1) {
-                    //erro de execução
-                    freeHT(maxs);
-                    freeHT(curr);
-                    freeHT(proc);
-                    deepFreePedido(pedido);
-                    return -1;
-                } else if (w == 1) {
-                    //pedido rejeitado
-                    deepFreePedido(pedido);
-                    //avisar o cliente que deu asneira
-                } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
-                    freeHT(maxs);
-                    freeHT(curr);
-                    freeHT(proc);
-                    deepFreePedido(pedido);
-                    return -1;
-                }
-                //executaPedido(pedido, pasta);
-                //avisar o cliente que foi posto em pending
-                pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
-                if (pedido != NULL) {
-                    //adicionar aos em processamento
-                    //avisar o cliente que foi adicionado aos em processamento
-                    r = executaPedido(pedido, argv[2]);
-                }
+        w = 0;
+        while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
+            pipeParse[w++] = pipeRead[r++];
+            TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+        }
+        pipeParse[w] = '\0';
+
+        if (pipeRead[r] == ' ') {
+            //deve de ser input
+            int fd_pedido;
+            if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
+                write(2, "Failed to open pipe to client\n", 31);
+                //rejeita pedido
             } else {
-                //erro de input do cliente, rejeitar o pedido
+                r++;
+                TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                w = 0;
+                while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
+                    pipeParse[w++] = pipeRead[r++];
+                    TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                }
+                pipeParse[w] = '\0';
+                r++;
+                TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                if (strcmp(pipeParse, "proc-file") == 0) {
+                    w = 0;
+                    while (pipeRead[r] != '\0') {
+                        while (pipeRead[r] != ' ') {
+                            pipeParse[w++] = pipeRead[r++];
+                            TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                        }
+                        pipeParse[w++] = pipeParse[r++];
+                        TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                    }
+                    pipeParse[w] = '\0';
+                    r++;
+                    TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                    //Leitura do pedido
+                    Pedido *pedido;
+                    if ((w = createPedido(pipeParse, &pedido, maxs, n_pedido++, fd_leitura)) == -1) {
+                        //erro de execução
+                        freeHT(maxs);
+                        freeHT(curr);
+                        freeHT(proc);
+                        deepFreePedido(pedido);
+                        return -1;
+                    } else if (w == 1) {
+                        //pedido rejeitado
+                        deepFreePedido(pedido);
+                        //avisar o cliente que deu asneira se tiver fd aberto lmao
+                    } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
+                        freeHT(maxs);
+                        freeHT(curr);
+                        freeHT(proc);
+                        deepFreePedido(pedido);
+                        return -1;
+                    }
+                    //executaPedido(pedido, pasta);
+                    //avisar o cliente que foi posto em pending
+                    pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
+                    if (pedido != NULL) {
+                        //adicionar aos em processamento
+                        //avisar o cliente que foi adicionado aos em processamento
+                        int *pid_manager = malloc(sizeof(int));
+                        *pid_manager = executaPedido(pedido, argv[2]);
+                        writeHT(proc, (void *) pid_manager, pedido);
+                    }
+                } else if (strcmp(pipeParse, "status") == 0) {
+                    char *string;
+                    int i, bytes_read;
+                    for (i = proc->aux_array.last; i != -1; w = proc->aux_array.array[POS(i, 0)]) {
+                        bytes_read = pedidoToString((Pedido *) proc->tbl[i].value, &string);
+                        write(((Pedido *)proc->tbl[i].value)->fd, string, bytes_read);
+                        free(string);
+                    }
+                } else {
+                    //borradovski
+                }
             }
-            createInputChild(pipe_input, &pid_input_child, fd_leitura);
-        } else { 
-            //se entrou aqui, acabou de terminar um pedido
-            //descobrir o pedido através do pid?
-            //reduzir aos maxs
-            //falar com cliente ESPECIFICAMENTE ANTES DA DE BAIXO PARA NÃO SE PERDER O PEDIDO
-            //retirar da estrutura
-            
+        } else if (pipeRead[r] == '\0') {
+            //deve de ser termino do manager
+            r++;
+            TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+            int key = atoi(pipeParse);
+            //retirar aos proc
+            waitpid(key, &status, 0);
+            //testar os erros do status
+            deleteHT(proc, &key);
         }
     }
-    //suponhamos que o servidor sabe prioridade, init file, transfs e file final
-    //1ª coisa que ele faz:
-    //ler todas as transfs e guardar num dicionário quantas são de cada
-    
-    //ver se nenhuma delas excede o valor max == nunca vai ser executado => atirar para o lixo oops (não encher a queue)
-        //nesse caso deu barraco senhor cliente
-
-    //ponderar executar da queue: ver cada valor de cada transf e ver se "cabe"
-        //se "cabe", executa.
-        //se não conseguir, vai para o fim que se lixa tentasse noutra altura c:
-
-    //sem prioridades, queue para os processos
-    //para fazer prioridades é preciso alguma coisa parecida com maxheap/array com valor máximo tipo orla do djikstra
-
-    //prioridade extra: quantidade de transformações/quantidade de transformações iguais == n_transf que passamos para o executaPedido
-    //tentar escolher a que tem menos porque deve demorar menos
-
-    //finalmente executar alguma coisa yey como?
-    //as transformações lêem do stdin e mandam para o stdout
-    //como começar/acabar?
-        //fazer dup do stdin direto para o ficheiro OU fazer dup para um pipe e escrever nesse pipe
-        //quando fazer open do ficheiro inicial/final? antes ou depois do fork?
-    
-    //fazer o executa pedido está feito, mas precisa de conseguir fazer concorrente na mesma
-    //o executaPedido vai devolver para não parar o servidor mas isso não quer dizer que acabou...
-    //esperar pelo sinal de término para poder decrementar do dicionário dos maxs
-    //freeHT(maxs);
     close(fd_escrita);
     close(fd_leitura);
-    close(pipe_input[0]);
-    close(pipe_input[1]);
     freeHT(maxs);
     freeHT(curr);
     freeHT(proc);
-    deepFreePedido(pedido);
     return 0;
 }
