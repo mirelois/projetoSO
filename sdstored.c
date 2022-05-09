@@ -179,7 +179,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
     }
 }
 
-pid_t executaPedido(Pedido *pedido, char *pasta) {
+pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
@@ -216,7 +216,6 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
                         write(2, "Failed Exec or Transf\n", 23);
                         _exit(-1);
                     }
-                    _exit(0);
                 }
         } else {
             //0 fork->dups especiais de in->exec
@@ -258,7 +257,6 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             //realizaTransf(pedido, pasta, i, p1, p2);
             //o manager avisa o cliente ou avisa o servidor que avisa o cliente
                 //prob avisa o servidor que avisa o cliente
-            _exit(0);
         }
         //fazer forks while houver transformações
         //fazemos 1º fork se houver transformação
@@ -268,6 +266,14 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             //2) fazemos write para um pipe (saber o tamanho) e fazer dup do pipe para o stdin
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
+        int tamanho = getpid();
+        //int j;
+        //for(j=0; tamanho!=0; j++){ // contar quantas casas
+        //    tamanho = tamanho/10;
+        //}
+        //cuidado com o tamanho do buffer
+        sprintf(buffer, "%d", tamanho);
+        write(fd_escrita, buffer, strlen(buffer)+1);
         write(pedido->fd, "concluded\n", 11); // Falta o avançado
         _exit(0);
     }
@@ -456,47 +462,45 @@ int main(int argc, char const *argv[]) {
         pendingQ[r].start = NULL;
     }
 
-    int status, n_pedido = 1, bytes_read_pipe, pid_read;
+    int status, n_pedido = 1, bytes_read_pipe = 0, pid_read;
     char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
     Pedido *pedido_read;
-    bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);
     r = 0;
     while(flag_term && 1) {
+        TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         w = 0;
         while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
             pipeParse[w++] = pipeRead[r++];
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         }
+        r++;
         pipeParse[w] = '\0';
         pid_read = atoi(pipeParse);
-        int flag = readHT(proc, (void *) &pid_read, (void **) &pedido_read);
-        if (flag == -1 && flag_term) {
+        int proc_pid_pos = readHT(proc, (void *) &pid_read, (void **) &pedido_read);
+        if (proc_pid_pos == -1 && flag_term) {
             //deve de ser input
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
                 write(2, "Failed to open pipe to client\n", 31);
                 //rejeita pedido
             } else {
-                r++;
-                TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                 w = 0;
+                TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                 while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
                     pipeParse[w++] = pipeRead[r++];
                     TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                 }
                 pipeParse[w] = '\0';
                 r++;
-                TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                 if (strcmp(pipeParse, "proc-file") == 0) {
                     w = 0;
+                    TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     while (pipeRead[r] != '\0') {
                         pipeParse[w++] = pipeRead[r++];
                         TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
                     }
-                    
-                    pipeParse[w] = '\0';
                     r++;
-                    TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                    pipeParse[w] = '\0';
                     //Leitura do pedido
                     Pedido *pedido;
                     if ((w = createPedido(pipeParse, &pedido, maxs, n_pedido++, fd_pedido)) == -1) {
@@ -525,8 +529,10 @@ int main(int argc, char const *argv[]) {
                         //adicionar aos em processamento
                         //avisar o cliente que foi adicionado aos em processamento
                         int *pid_manager = malloc(sizeof(int));
-                        *pid_manager = executaPedido(pedido, argv[2]);
-                        writeHT(proc, (void *) pid_manager, pedido);
+                        *pid_manager = executaPedido(pedido, argv[2], fd_escrita);
+                        if (writeHT(proc, (void *) pid_manager, pedido) == -1) {
+                            write(2, "Failed to write to proc\n", 5);
+                        }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
                     char *string;
@@ -540,7 +546,8 @@ int main(int argc, char const *argv[]) {
                     //borradovski
                 }
             }
-        } else if (flag == -1) {
+        } else if (proc_pid_pos == -1) {
+            
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
                 write(2, "Failed to open pipe to client\n", 31);
@@ -548,19 +555,19 @@ int main(int argc, char const *argv[]) {
             }
             write(fd_pedido, "Mano seu trouxa\n", 17);
             close(fd_pedido);
+            TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
             while (pipeRead[r] != '\0') {
                 r++;
                 TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
             }
-        } else if (flag >= 0) {
-            //deve de ser termino do manager
             r++;
-            TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+        } else if (proc_pid_pos >= 0) {
+            //deve de ser termino do manager
             //int key = atoi(pipeParse);
             //retirar aos proc
-            waitpid(flag, &status, 0);
+            waitpid(pid_read, &status, 0);
             //testar os erros do status
-            deleteHT(proc, &flag);
+            deleteHT(proc, &pid_read);
 
             Pedido *pedido;
             pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
@@ -568,7 +575,7 @@ int main(int argc, char const *argv[]) {
                 //adicionar aos em processamento
                 //avisar o cliente que foi adicionado aos em processamento
                 int *pid_manager = malloc(sizeof(int));
-                *pid_manager = executaPedido(pedido, argv[2]);
+                *pid_manager = executaPedido(pedido, argv[2], fd_escrita);
                 writeHT(proc, (void *) pid_manager, pedido);
             }
         }

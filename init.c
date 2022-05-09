@@ -5,23 +5,24 @@
 int strArrayToString(int n, char *array[], char **dest, pid_t pid) {
     if (n>0) {
         char *sep = " ", buffer[33];
-        int i,c,s;
-        for (i = 0, c = 0, s = -1; i<n; i++, s++) {
+        int i,j,c,s;
+        for (i = 0, c = 0, s = 0; i<n; i++, s++) {
             c += strlen(array[i]);
         }
-        (*dest) = malloc(c+s+5); // inicial: c + s + 1, como queremos 4 chars para tamanho do pedido fica c + s + 5
-        char *target = (*dest);
+        
         pid_t tamanho = pid;
-        for(i=0; tamanho!=0; i++){ // contar quantas casas
+        for(j=0; tamanho!=0; j++){ // contar quantas casas
             tamanho = tamanho/10;
         }
+        (*dest) = malloc(c+s+i+1); 
+        char *target = (*dest);
         //if(tamanho > 4) return -1 -> possibilidade ? xD
         //int j;
         //for(j=0; j < 4-i; j++)
         //    target[j] = '0';
         //target += j;
         sprintf(target, "%d %s", pid, array[0]);
-        target += strlen(array[0]) + i;
+        target += strlen(array[0]) + j;
         for(i = 1; i<n; i++) {
             strcat(target, sep);
             target++;
@@ -30,7 +31,7 @@ int strArrayToString(int n, char *array[], char **dest, pid_t pid) {
         }
         target++;
         *target = '\0';
-        return c+s+i+2;
+        return c+s+j+1;
     }
     return 0;
 }
