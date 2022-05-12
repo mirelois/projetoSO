@@ -274,6 +274,8 @@ int writeHTaux (HT *h, void* key, void* value) {
             strcpy(h->tbl[p].key, (char*)key);
         }else if (h->key_type == INT) {
             *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
+        }else{
+            return -1;
         }
 
         h->used++;//increment used
@@ -286,80 +288,90 @@ int writeHTaux (HT *h, void* key, void* value) {
 /**
  * @brief writes pair key,value in hashtable 
  * 
- * if charge passes MAX_CHARGE
+ * if charge passes MAX_CHARGE changes size to largest prime bigger than 2*h->size
+ * if key already in hashtable value is updated
  * 
- * assume que chave nao ocorre no dicionario
- * 
- * @param h pointer para o dicionario onde escrever
- * @param key chave a colocar no dicionario
- * @param value valor a associar com a chave no dicionario
- * @return posiçao onde colocou o par ou -1 se falhar
+ * @param h pointer to hashtable on whitch to write
+ * @param key key to put in hashtable
+ * @param value value to associate to key
+ * @return int position were (key,value) was placed or -1
  */
 int writeHT (HT *h, void* key, void* value) {
 
+    //charge check
     float charge = (h->used + 1.0)/(h->size);
 
-    if(charge >= MAX_CHARGE) {
+    if(charge >= MAX_CHARGE) {//increasing h size
 
-        HT *new_h = malloc(sizeof(HT));
+        HT *new_h = malloc(sizeof(HT));//allocating size for new hashtable
 
-        if(new_h == NULL){
+        if(new_h == NULL){//malloc fail condition
             return -1;
         }
 
         int new_size;
 
-        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
+        for(new_size = (h->size)*2; !isprime(new_size); new_size++);//finding smallest larger than double h's size
 
 
-        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->key_type, h->value_type) == -1){
+        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->key_type, h->value_type) == -1){//initializig new_h with new size
             return -1;
         }
 
-        for(int i = 0; i < h->size; i++) {
-            if (!isfreeHT(h, i)){
-                writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+        for(int i = 0; i < h->size; i++) {//writing entries to new hashtable 
+            if (!isfreeHT(h, i)){//only valid entries are writen
+                if(writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value) == -1){
+                    return -1;
+                }
             }
         }
 
-        AuxFree(h);
+        AuxFree(h);//frees previous hashtable
 
-        if (h->aux_array.aux_array_flag) {
+        if (h->aux_array.aux_array_flag) {//updates aux_array
             h->aux_array.array = new_h->aux_array.array;
             h->aux_array.last = new_h->aux_array.last;
         }
-        
+
+        //updates table,size and used
         h->tbl = new_h->tbl;
         h->size = new_h->size;
         h->used = new_h->used;
         
     }
-
+    //writes value to hashtable
     return writeHTaux(h, key, value);
 }
 
 /**
- * @brief lê o valor associado a uma chave
+ * @brief reads value associated with key
  * 
- * assume que chave so aparece uma ves no dicionario
  * 
- * @param h pointer para o dicionario de onde ler
- * @param key chave
- * @param value pointer onde é colocado o valor associado a chave
- * @return posicao na tabela de onde foi lido o valor ou -1 caso a chave nao exista no dicionario
+ * @param h pointer to hashtable on whitch to read
+ * @param key key to be read
+ * @param value pointer were pointer to value is placed
+ * @return int position were key was found or -1
  */
 int readHT(HT *h, void* key, void** value){
+
     int p , r = -1 , c = h->size, flg = 1;
     void* empty;
+
+    //key_type check
     if (h->key_type == STRING) {
         empty = (void*)EMPTY_STRING;
     }else if (h->key_type == INT) {
         int tmp = EMPTY_INT;
         empty = (void*)&tmp;
+    }else{
+        return -1;
     }
+
+    //tries to find key in hashtable, stops if finds EMPTY key or if all table positions have been checked
     for(p = hash(h, key); keycmp(h, key,(h->tbl)[p].key) && (c > 0) && (flg = keycmp(h, empty,(h->tbl)[p].key)); c--){
         p = (p+1)%(h->size);
     }
+    //case key has been found changes return value and saves value
     if(c != 0 && flg){
         r = p;
         *value = (h->tbl)[p].value;
@@ -368,38 +380,45 @@ int readHT(HT *h, void* key, void** value){
 }
 
 /**
- * @brief subtitui a chave por DELETED e coloca o valor guardado a -1
+ * @brief substituted key with DELETED and sets value to NULL
  * 
- * assume que chave so aparece uma ves no dicionario
  * 
- * @param h pointer para o dicionario em que sera eliminado o valor
- * @param key chave a eliminar
- * @return posicao na tabela de onde foi eliminada a chave ou -1 caso a chave nao exista no dicionario
+ * @param h pointer to hashtable were entrie will be deleted
+ * @param key key to eliminate
+ * @return int position were key was eliminated or -1
  */
 int deleteHT (HT *h, void* key) {
 
     void* x;
-    int p = readHT(h, key, &x);
+    int p = readHT(h, key, &x);//finds position of key
 
-    if(p != -1) {
+    if(p != -1) {//case key exists
 
+        //checks key_type and replaces with respective DELETED
         if (h->key_type == STRING) {
             strcpy(h->tbl[p].key, DELETED_STRING);
         }else if (h->key_type == INT) {
             *(pid_t*)(h->tbl[p].key) = DELETED_INT;
+        }else{
+            return -1;
         }
 
-        freeValueHT(h, p);
-        h->tbl[p].value = NULL;
-
+        //frees value associated with key and sets it to NULL
+        if(h->tbl[p].value != NULL){
+            freeValueHT(h, p);
+            h->tbl[p].value = NULL;
+        }
+        
+        //removes position from aux_array
         if (h->aux_array.aux_array_flag) {
 
             int last = h->aux_array.last;
 
-            if (p == last) {
-                h->aux_array.last = h->aux_array.array[POS(p,0)];
+            if (p == last) {//check if last is position to be removed
+                h->aux_array.last = h->aux_array.array[POS(p,0)];//updates last
             }
             
+            //position removal logic
             int i1 = h->aux_array.array[POS(p,0)];
             int i2 = h->aux_array.array[POS(p,1)];
             h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
@@ -431,6 +450,11 @@ int printHT(HT *h) {
     
 }
 
+/**
+ * @brief frees allocated memory pointed to by dest
+ * 
+ * @param dest 
+ */
 void deepFreePedido(Pedido *dest) {
     if (dest->hashtable) {
         freeHT(dest->hashtable);
