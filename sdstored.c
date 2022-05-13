@@ -402,10 +402,10 @@ int main(int argc, char const *argv[]) {
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
     signal(SIGTERM, term_handler);
 
-    //if((mkfifo("entrada", 0666)) == -1){
-    //    write(2, "Failed to create Named pipe entrada\n", 37);
-    //    return -1;
-    //}
+    if((mkfifo("entrada", 0666)) == -1){
+        write(2, "Failed to create Named pipe entrada\n", 37);
+        return -1;
+    }
 
     int fd_leitura, fd_escrita;
 
@@ -447,7 +447,7 @@ int main(int argc, char const *argv[]) {
     }
 
     HT *proc = malloc(sizeof(HT));
-    if (initHT(proc, INIT_DICT_SIZE, 1, INT, PEDIDO) == -1) {
+    if (initHT(proc, INIT_DICT_SIZE, 1, PID_T, PEDIDO) == -1) {
         write(2, "No space for Hashtable\n", 24);
         freeHT(maxs);
         freeHT(curr);
@@ -455,7 +455,7 @@ int main(int argc, char const *argv[]) {
         return -1;
     }
 
-    int r, w;
+    int r, w, n_transfs_pendingQ = 0;
     PendingQueue pendingQ[MAX_PRIORITY+1];
     for (r = 0; r<MAX_PRIORITY+1; r++) {
         pendingQ[r].end = NULL;
@@ -466,7 +466,7 @@ int main(int argc, char const *argv[]) {
     char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
     Pedido *pedido_read;
     r = 0;
-    while(flag_term && 1) {
+    while(flag_term || n_transfs_pendingQ != 0) {
         TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         w = 0;
         while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
@@ -521,11 +521,13 @@ int main(int argc, char const *argv[]) {
                         deepFreePedido(pedido);
                         return -1;
                     }
+                    n_transfs_pendingQ++;
                     //executaPedido(pedido, pasta);
                     //avisar o cliente que foi posto em pending
                     write(pedido->fd, "pending\n", 9);
                     pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
                     if (pedido != NULL) {
+                        n_transfs_pendingQ--;
                         //adicionar aos em processamento
                         //avisar o cliente que foi adicionado aos em processamento
                         int *pid_manager = malloc(sizeof(int));
@@ -572,6 +574,7 @@ int main(int argc, char const *argv[]) {
             Pedido *pedido;
             pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
             if (pedido != NULL) {
+                n_transfs_pendingQ--;
                 //adicionar aos em processamento
                 //avisar o cliente que foi adicionado aos em processamento
                 int *pid_manager = malloc(sizeof(int));
