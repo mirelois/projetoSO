@@ -245,9 +245,9 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                         fflush(stdout);
                         w = tamanhoinicial;
                         StringToBuffer(r, w, pedido->pedido, buffer);
-                        escolheEntradaSaida(pedido, i, p);
                         write(1, buffer, strlen(buffer));
                         putchar('\n');
+                        escolheEntradaSaida(pedido, i, p);
                         int ex = execl(buffer, buffer, (char *) NULL);
                         write(2, "Failed Exec Manager Child\n", 27);
                         _exit(ex);
