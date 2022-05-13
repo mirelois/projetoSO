@@ -108,14 +108,35 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     return 0;
 }
 
+void escolheEntradaSaidaOneTransf(char *in, char *out){
+    int fd_i, fd_o;
+    if((fd_i = open(in, O_RDONLY)) == -1){
+        write(2,"Failed to open file in\n", 24);
+        _exit(-1);
+    }
+    if((fd_o = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+        write(2, "Failed to open file out\n", 25);
+        _exit(-1);
+    } //pôr if's à volta dos opens (já pus -- carlos)
+    if((dup2(fd_i, 0)) == -1){
+        write(2, "Failed to dup the input\n", 25);
+        _exit(-1);
+    }
+    if((dup2(fd_o, 1)) == -1){
+        write(2, "Failed to dup the output\n", 26);
+        _exit(-1);
+    } //pôr if's à volta dos dups (já pus -- carlos)
+    close(fd_i);
+    close(fd_o);
+}
 
 void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
-    if(i == pedido->n_transfs){
-        if((dup2(p[i-2][0], 0)) == -1){
+    if(i == pedido->n_transfs-1){
+        if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input\n", 25);
             _exit(-1);
         }
-        close(p[i-2][0]);
+        close(p[i-1][0]);
         int fd_o;
         if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
             write(2, "Failed to open file out\n", 25);
@@ -126,7 +147,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
             _exit(-1);
         }
         close(fd_o);
-    }else if(i-1 == 0){
+    }else if(i == 0){
         int fd_i;
         if((fd_i = open(pedido->in, O_RDONLY)) == -1){
             write(2, "Failed to open file in\n", 24);
@@ -137,24 +158,24 @@ void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
             _exit(-1);
         }
         close(fd_i);
-        close(p[i-1][0]);
-        if((dup2(p[i-1][1], 1)) == -1){
+        close(p[i][0]);
+        if((dup2(p[i][1], 1)) == -1){
             write(2, "Failed to dup the output\n", 26);
             _exit(-1);
         }
-        close(p[i-1][1]);
+        close(p[i][1]);
     }else{
-        close(p[i-1][0]);
-        if((dup2(p[i-2][0], 0)) == -1){
+        close(p[i][0]);
+        if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input\n", 25);
             _exit(-1);
         }
-        close(p[i-2][0]);
-        if((dup2(p[i-1][1], 1)) == -1){
+        close(p[i-1][0]);
+        if((dup2(p[i][1], 1)) == -1){
             write(2, "Failed to dup the output\n", 26);
             _exit(-1);
         }
-        close(p[i-1][1]);
+        close(p[i][1]);
     }
 }
 
@@ -175,41 +196,20 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
             buffer[w] = pasta[w];
         buffer[w++] = '/';
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
-
-        int p[pedido->n_transfs+1][2], i;
-        if(pipe(p[0]) == -1){
-            write(2, "Failed pipe file in\n", 21);
-            _exit(-1);
-        }
-
-        if((dup2(p[0][0], 0)) == -1){
-            write(2, "Failed to dup the input\n", 25);
-            _exit(-1);
-        }
-
-        for (i = 1; i < pedido->n_transfs; i++) {
-            if(i != pedido->n_transfs)
-                if(pipe(p[i]) == -1){
-                    write(2, "Failed pipe\n", 13);
-                    _exit(-1);
-                }
-            // char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
+        if (pedido->n_transfs == 1) {
+            //char buffer[strlen(pasta) + w + 1];
             switch(fork()){
                 case -1:
                     write(2, "Failed Fork Manager to Child\n", 30);
                     _exit(-1);
                 case 0:
-                    w = tamanhoinicial;
+                    escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
+                    //sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     StringToBuffer(r, w, pedido->pedido, buffer);
-                    escolheEntradaSaida(pedido, i, p);
-                    int ret = execl(buffer, buffer);
+                    int ret = execl(buffer, buffer, (char *) NULL);
                     write(2, "Failed Exec Manager Child\n", 27);
                     _exit(ret);
-                default:
-                    if(i != pedido->n_transfs)
-                        close(p[i][1]);
-                    if(i-1 != 0)
-                        close(p[i-2][0]);
+                default: ;
                     int status;
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
@@ -217,12 +217,47 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                         _exit(-1);
                     }
                 }
-            }
+        } else {
+            //0 fork->dups especiais de in->exec
+            //realizaTransf(pedido, pasta, 0, p1, p2);
+            //não funciona c:
+            int p[pedido->n_transfs-1][2], i;
+            for (i = 0; i < pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
+                if(i != pedido->n_transfs-1)
+                    if(pipe(p[i]) == -1){
+                        write(2, "Failed pipe\n", 13);
+                        _exit(-1);
+                    }
+                // char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
+                switch(fork()){
+                    case -1:
+                        write(2, "Failed Fork Manager to Child\n", 30);
+                        _exit(-1);
+                    case 0:
+                        w = tamanhoinicial;
+                        StringToBuffer(r, w, pedido->pedido, buffer);
+                        escolheEntradaSaida(pedido, i, p);
+                        int ret = execl(buffer, buffer);
+                        write(2, "Failed Exec Manager Child\n", 27);
+                        _exit(ret);
+                    default:
+                        if(i != pedido->n_transfs-1)
+                            close(p[i][1]);
+                        if(i != 0)
+                            close(p[i-1][0]);
+                        int status;
+                        wait(&status);
+                        if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                            write(2, "Failed Exec or Transf\n", 23);
+                            _exit(-1);
+                        }
+                    }
+                }
             //n_transf-1 fork->dup especial COM CONTA DO ALTERNANTE (i%2) de out->exec
             //realizaTransf(pedido, pasta, i, p1, p2);
             //o manager avisa o cliente ou avisa o servidor que avisa o cliente
                 //prob avisa o servidor que avisa o cliente
-        }else{
+        }
         //fazer forks while houver transformações
         //fazemos 1º fork se houver transformação
         //E agora? Fazemos primeiro 1) e depois vê-se como os stores querem a cena avançada
@@ -231,22 +266,19 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
             //2) fazemos write para um pipe (saber o tamanho) e fazer dup do pipe para o stdin
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
-        pid_t pid = getpid();
-        int tamanho = pid;
-        int j;
-        for(j=0; tamanho!=0; j++){ // contar quantas casas
-            tamanho = tamanho/10;
-        }
-        char buffer[j+1];
+        int tamanho = getpid();
+        //int j;
+        //for(j=0; tamanho!=0; j++){ // contar quantas casas
+        //    tamanho = tamanho/10;
+        //}
         //cuidado com o tamanho do buffer
-        sprintf(buffer, "%d", pid);
-        write(fd_escrita, buffer, j+1);
+        sprintf(buffer, "%d", tamanho);
+        write(fd_escrita, buffer, strlen(buffer)+1);
         write(pedido->fd, "concluded\n", 11); // Falta o avançado
         _exit(0);
-        return manager;
     }
+    return manager;
 }
-
 
 /**
  * @brief Adiciona um pedido à PendingQueue
@@ -370,10 +402,10 @@ int main(int argc, char const *argv[]) {
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
     signal(SIGTERM, term_handler);
 
-    if((mkfifo("entrada", 0666)) == -1){
-        write(2, "Failed to create Named pipe entrada\n", 37);
-        return -1;
-    }
+    //if((mkfifo("entrada", 0666)) == -1){
+    //    write(2, "Failed to create Named pipe entrada\n", 37);
+    //    return -1;
+    //}
 
     int fd_leitura, fd_escrita;
 
