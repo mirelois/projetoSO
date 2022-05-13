@@ -2,16 +2,14 @@
 #define MAX_CHARGE 0.75
 #define MAX_TRANSF_SIZE 32
 
-#define STRING 1
-#define INT 0
-#define PEDIDO 2
+enum type{PID_T, STRING, PEDIDO, INT};
 
 #define POS(i,j) 2*i +j
 
 #define EMPTY_STRING       "-"
 #define DELETED_STRING     "+"
-#define EMPTY_INT          -1
-#define DELETED_INT        -2
+#define EMPTY_PID_T          -1
+#define DELETED_PID_T        -2
 
 struct pair {
     void* key;
@@ -55,8 +53,6 @@ int keycmp(HT* h, void* key1, void* key2);
 void freeHT(HT *h);
 
 int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type);
-
-int plusOneHT(HT *h, char key[], int* value);
 
 int writeHT (HT *h, void* key, void* value);
 

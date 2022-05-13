@@ -23,14 +23,13 @@ int hash(HT* h, void* key_void) {
 
         char* key = (char*)key_void;
         
-
         for(int i =0; key[i] != '\0'; i++){
            ret += key[i];
         }
 
-    }else if(h->key_type == INT) {
+    }else if(h->key_type == PID_T) {
 
-        ret = *((int*)key_void);
+        ret = *((pid_t*)key_void);
 
     }else {
         return -1;//error condition if key type is not defined
@@ -53,8 +52,8 @@ int isfreeHT(HT* h, int p) {
     if(h->key_type == STRING) {
         return strcmp((char*)h->tbl[p].key, EMPTY_STRING) == 0 || strcmp((char*)h->tbl[p].key, DELETED_STRING) == 0;
     }
-    if(h->key_type == INT) {
-        return *((int*)h->tbl[p].key) == EMPTY_INT || *((int*)h->tbl[p].key) == DELETED_INT;
+    if(h->key_type == PID_T) {
+        return *((pid_t*)h->tbl[p].key) == EMPTY_PID_T || *((pid_t*)h->tbl[p].key) == DELETED_PID_T;
     }
     return 0;
 }
@@ -95,8 +94,8 @@ int keycmp(HT* h, void* key1, void* key2) {
     if(h->key_type == STRING) {
         return strcmp((char*)key1, (char*)key2);
     }
-    if(h->key_type == INT) {
-        return *((int*)key1) - *((int*)key2);
+    if(h->key_type == PID_T) {
+        return *((pid_t*)key1) - *((pid_t*)key2);
     }
     return -1;//error condition if type not defined
 }
@@ -152,12 +151,12 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
             h->tbl[i].value = NULL;
         }
 
-    }else if(h->key_type == INT) {
+    }else if(h->key_type == PID_T) {
         //if key is set to INT sizeof(pid_t) bytes of memory are allocated
         //for eatch position in hashtable
         for (int i=0; i<size; i++) {
             pid_t* tmp = malloc(sizeof(pid_t));
-            *tmp = EMPTY_INT;
+            *tmp = EMPTY_PID_T;
             h->tbl[i].key = (void*)tmp;
             h->tbl[i].value = NULL;
         }
@@ -214,7 +213,9 @@ void freeHT(HT *h) {
  * @return int
  */
 int isprime(int p){
+
     int i;
+    
     for(i = 2 ; i <= p/2 ; i++){
         if(p % i == 0) {
             return 0;
@@ -272,7 +273,7 @@ int writeHTaux (HT *h, void* key, void* value) {
         //copy key from key to hashtable
         if (h->key_type == STRING) {
             strcpy(h->tbl[p].key, (char*)key);
-        }else if (h->key_type == INT) {
+        }else if (h->key_type == PID_T) {
             *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
         }else{
             return -1;
@@ -301,7 +302,7 @@ int writeHT (HT *h, void* key, void* value) {
     //charge check
     float charge = (h->used + 1.0)/(h->size);
 
-    if(charge >= MAX_CHARGE) {//increasing h size
+    if(charge >= MAX_CHARGE) {//increasing h size if charge surpasses limit
 
         HT *new_h = malloc(sizeof(HT));//allocating size for new hashtable
 
@@ -360,8 +361,8 @@ int readHT(HT *h, void* key, void** value){
     //key_type check
     if (h->key_type == STRING) {
         empty = (void*)EMPTY_STRING;
-    }else if (h->key_type == INT) {
-        int tmp = EMPTY_INT;
+    }else if (h->key_type == PID_T) {
+        pid_t tmp = EMPTY_PID_T;
         empty = (void*)&tmp;
     }else{
         return -1;
@@ -397,8 +398,8 @@ int deleteHT (HT *h, void* key) {
         //checks key_type and replaces with respective DELETED
         if (h->key_type == STRING) {
             strcpy(h->tbl[p].key, DELETED_STRING);
-        }else if (h->key_type == INT) {
-            *(pid_t*)(h->tbl[p].key) = DELETED_INT;
+        }else if (h->key_type == PID_T) {
+            *(pid_t*)(h->tbl[p].key) = DELETED_PID_T;
         }else{
             return -1;
         }
@@ -431,7 +432,7 @@ int deleteHT (HT *h, void* key) {
 }
 
 int printHT(HT *h) {
-    if(h->key_type == INT){
+    if(h->key_type == PID_T){
         for(int i = 0; i < h->size; i++) {
             if((h->tbl)[i].value != NULL){
                 printf("%d -> (%d,%d)\n",i ,*((int*)((h->tbl)[i].key)), *(int*)((h->tbl)[i].value));
