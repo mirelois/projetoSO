@@ -8,8 +8,8 @@ enum type{PID_T, STRING, PEDIDO, INT};
 
 #define EMPTY_STRING       "-"
 #define DELETED_STRING     "+"
-#define EMPTY_PID_T          -1
-#define DELETED_PID_T        -2
+#define EMPTY_PID_T         -1
+#define DELETED_PID_T       -2
 
 struct pair {
     void* key;
@@ -60,6 +60,7 @@ int readHT (HT *h, void* key, void** value);
 
 int deleteHT (HT *h, void* key);
 
+//to be eliminated
 int printHT(HT *h);
 
 void deepFreePedido(Pedido *dest);
