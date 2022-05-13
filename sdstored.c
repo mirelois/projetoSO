@@ -237,7 +237,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                         w = tamanhoinicial;
                         StringToBuffer(r, w, pedido->pedido, buffer);
                         escolheEntradaSaida(pedido, i, p);
-                        int ret = execl(buffer, buffer);
+                        int ret = execl(buffer, buffer, (char *) NULL);
                         write(2, "Failed Exec Manager Child\n", 27);
                         _exit(ret);
                     default:
