@@ -130,14 +130,17 @@ void escolheEntradaSaidaOneTransf(char *in, char *out){
     close(fd_o);
 }
 
-void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
+void escolheEntradaSaida(Pedido *pedido, int i, int **p){
     if(i == pedido->n_transfs-1){
+        write(1, "oi\n", 3);
         if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input\n", 25);
             _exit(-1);
         }
         close(p[i-1][0]);
         int fd_o;
+        write(1, pedido->out, strlen(pedido->out));
+        putchar('\n');
         if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
             write(2, "Failed to open file out\n", 25);
             _exit(-1);
@@ -148,6 +151,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
         }
         close(fd_o);
     }else if(i == 0){
+        write(1, "oi2\n", 4);
         int fd_i;
         if((fd_i = open(pedido->in, O_RDONLY)) == -1){
             write(2, "Failed to open file in\n", 24);
@@ -165,6 +169,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
         }
         close(p[i][1]);
     }else{
+        write(1, "oi3\n", 4);
         close(p[i][0]);
         if((dup2(p[i-1][0], 0)) == -1){
             write(2, "Failed to dup the input\n", 25);
@@ -177,6 +182,7 @@ void escolheEntradaSaida(Pedido *pedido, int i, int *p[2]){
         }
         close(p[i][1]);
     }
+    write(1, "hoi\n", 4);
 }
 
 pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
@@ -184,6 +190,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
         //importa a função? vai copiar o processo inteiro?
+    int ret = 0;
     pid_t manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
@@ -194,7 +201,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
         char buffer[tamanhoinicial + 33];
         for(w=0; pasta[w]!='\0'; w++)
             buffer[w] = pasta[w];
-        buffer[w++] = '/';
+        //buffer[w++] = '/';
         //o manager fala com o client? pode dizer-lhe diretamente que acabou sem passar pelo servidor
         if (pedido->n_transfs == 1) {
             //char buffer[strlen(pasta) + w + 1];
@@ -206,9 +213,9 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                     escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
                     //sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
                     StringToBuffer(r, w, pedido->pedido, buffer);
-                    int ret = execl(buffer, buffer, (char *) NULL);
+                    int ex = execl(buffer, buffer, (char *) NULL);
                     write(2, "Failed Exec Manager Child\n", 27);
-                    _exit(ret);
+                    _exit(ex);
                 default: ;
                     int status;
                     wait(&status);
@@ -234,25 +241,39 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                         write(2, "Failed Fork Manager to Child\n", 30);
                         _exit(-1);
                     case 0:
+                        printf("%d\n", i);
+                        fflush(stdout);
                         w = tamanhoinicial;
                         StringToBuffer(r, w, pedido->pedido, buffer);
                         escolheEntradaSaida(pedido, i, p);
-                        int ret = execl(buffer, buffer, (char *) NULL);
+                        write(1, buffer, strlen(buffer));
+                        putchar('\n');
+                        int ex = execl(buffer, buffer, (char *) NULL);
                         write(2, "Failed Exec Manager Child\n", 27);
-                        _exit(ret);
+                        _exit(ex);
                     default:
                         if(i != pedido->n_transfs-1)
                             close(p[i][1]);
                         if(i != 0)
                             close(p[i-1][0]);
-                        int status;
-                        wait(&status);
-                        if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
-                            write(2, "Failed Exec or Transf\n", 23);
-                            _exit(-1);
-                        }
-                    }
+                        //int status;
+                        //wait(&status);
+                        //if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                        //    write(2, "Failed Exec or Transf\n", 23);
+                        //    _exit(-1);
+                        //}
                 }
+            }
+            int status;
+            for(i = 0; i<pedido->n_transfs; i++) {
+                wait(&status);
+                printf("help: %d\n", WIFEXITED(status));fflush(stdout);
+                if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
+                    perror("Failed Exec or Transf");
+                    write(pedido->fd, "Failed Exec or Transformation.\n", 32);
+                    ret = -1;
+                }
+            }
             //n_transf-1 fork->dup especial COM CONTA DO ALTERNANTE (i%2) de out->exec
             //realizaTransf(pedido, pasta, i, p1, p2);
             //o manager avisa o cliente ou avisa o servidor que avisa o cliente
@@ -275,7 +296,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
         sprintf(buffer, "%d", tamanho);
         write(fd_escrita, buffer, strlen(buffer)+1);
         write(pedido->fd, "concluded\n", 11); // Falta o avançado
-        _exit(0);
+        _exit(ret);
     }
     return manager;
 }
@@ -481,6 +502,7 @@ int main(int argc, char const *argv[]) {
             //deve de ser input
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
+                write(1, pipeParse, strlen(pipeParse));
                 write(2, "Failed to open pipe to client\n", 31);
                 //rejeita pedido
             } else {
