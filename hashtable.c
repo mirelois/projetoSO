@@ -5,18 +5,20 @@
 #include "hashtable.h"
 
 /**
- * @brief funcao de hash
+ * @brief hash function
  * 
- * soma o valor de ascii de todos os caracteres de uma string
+ * sum of all ASCII values of characters in a string ajusted to the size of h
+ * integer ajusted to the size of h
  * 
- * @param key string a qual a funçao sera aplicada
- * @param size tamanho do dicionario
- * @return 
+ * @param h hashtable for which the hash value is necessary 
+ * @param key_void key to be hashed
+ * @return int
  */
 int hash(HT* h, void* key_void) {
 
-    int ret = 0;
+    int ret = 0; //default hash
 
+    //key type check
     if(h->key_type == STRING) {
 
         char* key = (char*)key_void;
@@ -31,13 +33,22 @@ int hash(HT* h, void* key_void) {
         ret = *((int*)key_void);
 
     }else {
-        return -1;//condiçao de erro se o user for alta palhaço
+        return -1;//error condition if key type is not defined
     }
     
     return ret%(h->size);
     
 }
 
+/**
+ * @brief checks if given position in hashtable is free to write on
+ * 
+ * returns false if h->key_type is not defined
+ * 
+ * @param h hashtable on whitch to check
+ * @param p position to check
+ * @return int 
+ */
 int isfreeHT(HT* h, int p) {
     if(h->key_type == STRING) {
         return strcmp((char*)h->tbl[p].key, EMPTY_STRING) == 0 || strcmp((char*)h->tbl[p].key, DELETED_STRING) == 0;
@@ -45,69 +56,105 @@ int isfreeHT(HT* h, int p) {
     if(h->key_type == INT) {
         return *((int*)h->tbl[p].key) == EMPTY_INT || *((int*)h->tbl[p].key) == DELETED_INT;
     }
-
+    return 0;
 }
 
+/**
+ * @brief frees allocated memory pointed to by h->tbl[p].value
+ * 
+ * @param h hashtable on whitch memory will be freed
+ * @param p position on whitch memory should be freed
+ * @return int 
+ */
 int freeValueHT(HT* h, int p) {
+    //value type check
     if(h->value_type == PEDIDO) {
-            deepFreePedido(h->tbl[p].value);
-        }else if (h->value_type == INT) {
-            free(h->tbl[p].value);
-        }else {
-            return -1;
+        deepFreePedido(h->tbl[p].value);//deep free of pedido
+    }else if (h->value_type == INT) {
+        free(h->tbl[p].value);// simple free for integer
+    }else {
+        return -1;//error condition if typr not defined
     }
+    return 0;
 }
 
+/**
+ * @brief compares two given keys of the same type
+ * 
+ * returns 0 if keys are equal
+ * returns <0 if key1 < key2
+ * returns >0 if key1 > key2
+ * 
+ * @param h hashtable on whitch keys will be compared
+ * @param key1 
+ * @param key2 
+ * @return int 
+ */
 int keycmp(HT* h, void* key1, void* key2) {
+    //type check
     if(h->key_type == STRING) {
         return strcmp((char*)key1, (char*)key2);
     }
     if(h->key_type == INT) {
         return *((int*)key1) - *((int*)key2);
     }
+    return -1;//error condition if type not defined
 }
 
 /**
  * @brief inicializa um dicionario
  * 
+ * aux_array is alocated as simulated matrix
  * 
- * @param h pointer de um dicionario a ser inicializado
- * @param size tamanho do dicionario
- * @return 0 se o dicionario for inicializado corretamente e -1 caso contrario
+ * @param h pointer to hashtable to be created
+ * @param size size of new hashtable
+ * @param aux_array_flag flag indicating if an auxiliary array is to be created
+ * @param key_type type of key
+ * @param value_type type of value
+ * 
+ * @return int
  */
 int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
 
+    //aux_array_flag check
     if (aux_array_flag) {
-        if((h->aux_array.array = malloc(2*size*sizeof(int))) == NULL) {
-            return -1;
+        if((h->aux_array.array = malloc(2*size*sizeof(int))) == NULL) { //aux_array_flag initialization
+            return -1;//error condition if malloc fails
         };
-        h->aux_array.last = -1;
+        h->aux_array.last = -1; //initial last position is set initialy as -1
     }else {
-        h->aux_array.array = NULL;
+        h->aux_array.array = NULL;// if aux_array is not requested aux_array pointer is set to NULL
     }
 
-    h->tbl = calloc(size, sizeof(struct pair));
+    
 
-    if(h->tbl == NULL){
-        return -1;
+    if((h->tbl = calloc(size, sizeof(struct pair))) == NULL){//memory allocation for hashtable
+        return -1;//error condition if calloc fails
     }
 
+    //setting initial parameters 
     h->value_type = value_type;
     h->key_type = key_type;
     h->aux_array.aux_array_flag = aux_array_flag;
     h->size = size;
     h->used = 0;
 
+    //key type check
     if(h->key_type == STRING) {
+        //if key is set to STRING, MAX_TRANSF_SIZE*sizeof(char) bytes of memory are allocated
+        //for eatch position in hashtable
 
         for (int i=0; i<size; i++) {
-            h->tbl[i].key = (void*)malloc(MAX_TRANSF_SIZE*sizeof(char));
+            if((h->tbl[i].key = (void*)malloc(MAX_TRANSF_SIZE*sizeof(char))) == NULL){
+                return -1;
+            }
             strcpy(h->tbl[i].key, EMPTY_STRING);
             h->tbl[i].value = NULL;
         }
 
     }else if(h->key_type == INT) {
-        
+        //if key is set to INT sizeof(pid_t) bytes of memory are allocated
+        //for eatch position in hashtable
         for (int i=0; i<size; i++) {
             pid_t* tmp = malloc(sizeof(pid_t));
             *tmp = EMPTY_INT;
@@ -116,11 +163,16 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
         }
 
     }else {
-        return -1;//condiçao de erro se o user for alta palhaço
+        return -1;//error condition if key_type is not defined
     }
     return 0;
 }
 
+/**
+ * @brief auxiliary function to use in writeHT
+ * 
+ * @param h 
+ */
 void AuxFree(HT *h) {
     if(h->aux_array.aux_array_flag) {
         free(h->aux_array.array);
@@ -132,34 +184,34 @@ void AuxFree(HT *h) {
 }
 
 /**
- * @brief liberta a memoria de um dicionario 
+ * @brief frees all memory allocated for a given hashtable 
  * 
- * 
- * @param h pointer de um dicionario a libertar
- * @return 0 se p nao e primo 1 caso contrario
+ * @param h hashtable to free
  */
 void freeHT(HT *h) {
-    if(h->aux_array.aux_array_flag) {
+    //aux_array check
+    if(h->aux_array.aux_array_flag) {//if aux array has ben created it must be freed
         free(h->aux_array.array);
     }
+
     for(int i = 0; i < h->size; i++) {
         
-        if(h->tbl[i].value != NULL){
+        if(h->tbl[i].value != NULL){//free all allocated values
             freeValueHT(h, i);
         }
 
-        free(h->tbl[i].key);
+        free(h->tbl[i].key);//free all keys
     }
-    free(h->tbl);
-    free(h);
+    free(h->tbl);//free hashtable
+    free(h);//free pointer to h
 }
 
 /**
- * @brief verifica se um numero é primo 
+ * @brief checks if number is prime 
  * 
  * 
- * @param p valor a testar
- * @return 0 se p nao e primo 1 caso contrario
+ * @param p value to test
+ * @return int
  */
 int isprime(int p){
     int i;
@@ -175,23 +227,25 @@ int isprime(int p){
  * @brief funcao auxiliar do writeHT 
  * 
  * 
- * @param h pointer para o dicionario onde escrever
- * @param key chave a colocar no dicionario
- * @param value valor a associar com a chave no dicionario
- * @return posicao onde escreveu
+ * @param h hashtable on whitch to write
+ * @param key key to add to hashtable
+ * @param value value to associate with key
+ * @return int
  */
 int writeHTaux (HT *h, void* key, void* value) {
 
     int p = hash(h, key);
     int flag = 1;
 
+    //increments p until free position is found
     for(p; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
 
+    //if value is already allocated free it
     if(h->tbl[p].value != NULL){
         freeValueHT(h, p);
     }
 
-    //copy value from value to dict
+    //copy value from value to hashtable
     if (h->value_type == PEDIDO) {
         h->tbl[p].value = value;
     }else if (h->value_type == INT) {
@@ -201,10 +255,11 @@ int writeHTaux (HT *h, void* key, void* value) {
     }else {
         return -1;
     }
-    //case new key put it on dict
     
+    //if key is new to hashtable write it on to hashtable
     if (flag) {
-
+        
+        //update aux_array
         if (h->aux_array.aux_array_flag) {
             int last = h->aux_array.last;
             if (last != -1) {
@@ -214,13 +269,16 @@ int writeHTaux (HT *h, void* key, void* value) {
             h->aux_array.last = p;
         }
 
+        //copy key from key to hashtable
         if (h->key_type == STRING) {
             strcpy(h->tbl[p].key, (char*)key);
         }else if (h->key_type == INT) {
             *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
+        }else{
+            return -1;
         }
 
-        h->used++;
+        h->used++;//increment used
 
     }
 
@@ -228,83 +286,92 @@ int writeHTaux (HT *h, void* key, void* value) {
 }
 
 /**
- * @brief escreve um par chave valor no dicionario 
+ * @brief writes pair key,value in hashtable 
  * 
- * quando a carga passa de MAX_CHARGE o tamanho do 
- * dicionario é aumentado para o menor numero primo maior do que o dobro do tamanho atual
+ * if charge passes MAX_CHARGE changes size to largest prime bigger than 2*h->size
+ * if key already in hashtable value is updated
  * 
- * assume que chave nao ocorre no dicionario
- * 
- * @param h pointer para o dicionario onde escrever
- * @param key chave a colocar no dicionario
- * @param value valor a associar com a chave no dicionario
- * @return posiçao onde colocou o par ou -1 se falhar
+ * @param h pointer to hashtable on whitch to write
+ * @param key key to put in hashtable
+ * @param value value to associate to key
+ * @return int position were (key,value) was placed or -1
  */
 int writeHT (HT *h, void* key, void* value) {
 
+    //charge check
     float charge = (h->used + 1.0)/(h->size);
 
-    if(charge >= MAX_CHARGE) {
+    if(charge >= MAX_CHARGE) {//increasing h size
 
-        HT *new_h = malloc(sizeof(HT));
+        HT *new_h = malloc(sizeof(HT));//allocating size for new hashtable
 
-        if(new_h == NULL){
+        if(new_h == NULL){//malloc fail condition
             return -1;
         }
 
         int new_size;
 
-        for(new_size = (h->size)*2; !isprime(new_size); new_size++);
+        for(new_size = (h->size)*2; !isprime(new_size); new_size++);//finding smallest larger than double h's size
 
 
-        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->key_type, h->value_type) == -1){
+        if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->key_type, h->value_type) == -1){//initializig new_h with new size
             return -1;
         }
 
-        for(int i = 0; i < h->size; i++) {
-            if (!isfreeHT(h, i)){
-                writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value);
+        for(int i = 0; i < h->size; i++) {//writing entries to new hashtable 
+            if (!isfreeHT(h, i)){//only valid entries are writen
+                if(writeHTaux(new_h, h->tbl[i].key, h->tbl[i].value) == -1){
+                    return -1;
+                }
             }
         }
 
-        AuxFree(h);
+        AuxFree(h);//frees previous hashtable
 
-        if (h->aux_array.aux_array_flag) {
+        if (h->aux_array.aux_array_flag) {//updates aux_array
             h->aux_array.array = new_h->aux_array.array;
             h->aux_array.last = new_h->aux_array.last;
         }
-        
+
+        //updates table,size and used
         h->tbl = new_h->tbl;
         h->size = new_h->size;
         h->used = new_h->used;
         
     }
-
+    //writes value to hashtable
     return writeHTaux(h, key, value);
 }
 
 /**
- * @brief lê o valor associado a uma chave
+ * @brief reads value associated with key
  * 
- * assume que chave so aparece uma ves no dicionario
  * 
- * @param h pointer para o dicionario de onde ler
- * @param key chave
- * @param value pointer onde é colocado o valor associado a chave
- * @return posicao na tabela de onde foi lido o valor ou -1 caso a chave nao exista no dicionario
+ * @param h pointer to hashtable on whitch to read
+ * @param key key to be read
+ * @param value pointer were pointer to value is placed
+ * @return int position were key was found or -1
  */
 int readHT(HT *h, void* key, void** value){
+
     int p , r = -1 , c = h->size, flg = 1;
     void* empty;
+
+    //key_type check
     if (h->key_type == STRING) {
         empty = (void*)EMPTY_STRING;
     }else if (h->key_type == INT) {
         int tmp = EMPTY_INT;
         empty = (void*)&tmp;
+    }else{
+        return -1;
     }
+
+    //tries to find key in hashtable, stops if finds EMPTY key or if all table positions have been checked
     for(p = hash(h, key); keycmp(h, key,(h->tbl)[p].key) && (c > 0) && (flg = keycmp(h, empty,(h->tbl)[p].key)); c--){
         p = (p+1)%(h->size);
     }
+    //case key has been found changes return value and saves value
     if(c != 0 && flg){
         r = p;
         *value = (h->tbl)[p].value;
@@ -313,38 +380,45 @@ int readHT(HT *h, void* key, void** value){
 }
 
 /**
- * @brief subtitui a chave por DELETED e coloca o valor guardado a -1
+ * @brief substituted key with DELETED and sets value to NULL
  * 
- * assume que chave so aparece uma ves no dicionario
  * 
- * @param h pointer para o dicionario em que sera eliminado o valor
- * @param key chave a eliminar
- * @return posicao na tabela de onde foi eliminada a chave ou -1 caso a chave nao exista no dicionario
+ * @param h pointer to hashtable were entrie will be deleted
+ * @param key key to eliminate
+ * @return int position were key was eliminated or -1
  */
 int deleteHT (HT *h, void* key) {
 
     void* x;
-    int p = readHT(h, key, &x);
+    int p = readHT(h, key, &x);//finds position of key
 
-    if(p != -1) {
+    if(p != -1) {//case key exists
 
+        //checks key_type and replaces with respective DELETED
         if (h->key_type == STRING) {
             strcpy(h->tbl[p].key, DELETED_STRING);
         }else if (h->key_type == INT) {
             *(pid_t*)(h->tbl[p].key) = DELETED_INT;
+        }else{
+            return -1;
         }
 
-        freeValueHT(h, p);
-        h->tbl[p].value = NULL;
-
+        //frees value associated with key and sets it to NULL
+        if(h->tbl[p].value != NULL){
+            freeValueHT(h, p);
+            h->tbl[p].value = NULL;
+        }
+        
+        //removes position from aux_array
         if (h->aux_array.aux_array_flag) {
 
             int last = h->aux_array.last;
 
-            if (p == last) {
-                h->aux_array.last = h->aux_array.array[POS(p,0)];
+            if (p == last) {//check if last is position to be removed
+                h->aux_array.last = h->aux_array.array[POS(p,0)];//updates last
             }
             
+            //position removal logic
             int i1 = h->aux_array.array[POS(p,0)];
             int i2 = h->aux_array.array[POS(p,1)];
             h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
@@ -376,6 +450,11 @@ int printHT(HT *h) {
     
 }
 
+/**
+ * @brief frees allocated memory pointed to by dest
+ * 
+ * @param dest 
+ */
 void deepFreePedido(Pedido *dest) {
     if (dest->hashtable) {
         freeHT(dest->hashtable);
