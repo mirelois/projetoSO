@@ -431,6 +431,7 @@ int deleteHT (HT *h, void* key) {
     return p;
 }
 
+//to be eliminated
 int printHT(HT *h) {
     if(h->key_type == PID_T){
         for(int i = 0; i < h->size; i++) {
@@ -467,6 +468,7 @@ void deepFreePedido(Pedido *dest) {
     close(dest->fd);
 }
 
+//to be eliminated
 int printPedido(Pedido *p) {
     printf("id->%d\nn_tranfs->%d\nprio->%s\npedido->%s\nin->%s\nout->%s\n", p->id, p->n_transfs, p->prio,p->pedido, p->in, p->out);
     printf("hashtable:\n");
