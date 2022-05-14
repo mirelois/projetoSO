@@ -6,4 +6,5 @@ CMakeLists.txt
 in
 out
 sdstore
+entrada
 sdstored

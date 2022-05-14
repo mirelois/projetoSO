@@ -20,6 +20,35 @@ int main(int argc, char const *argv[])
     } else if (argc == 2 && strcmp(argv[1], "status") == 0) {
         //do status, pedir ao servidor o status das tasks em execução e dos limites
         //o server que imprima as suas cenas, I'm done here.
+        pid_t pid = getpid();
+        char pidBuffer[32], bufferEscrita[32];
+        int fd_escrita, fd_leitura, bytesRead;
+        sprintf(pidBuffer, "%d", pid);
+        sprintf(bufferEscrita, "%d status", pid);
+        // código repetido talvez mas precisamos de um buffer só com o pid
+        if((mkfifo(pidBuffer, 0666)) == -1){
+            write(2, "Failed to create the named pipe\n", 33);
+            return -1;
+        }
+        if((fd_escrita = open("entrada", O_WRONLY)) == -1){
+            write(2, "Failed to open the named pipe\n", 31);
+            unlink(pidBuffer);
+            exit(-1);
+        }
+        write(fd_escrita, bufferEscrita, strlen(bufferEscrita));
+        close(fd_escrita);
+        if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
+            write(2, "Failed to open the named pipe\n", 31);
+            unlink(pidBuffer);
+            return -1;
+        }
+        char buffer[200]; // se calhar bem mais que 200 maybe
+        while((bytesRead = read(fd_leitura, buffer, 60)) > 0){
+            write(1, buffer, bytesRead);
+        }
+        close(fd_leitura);
+        unlink(pidBuffer);
+
     } else if (argc >= 5 && strcmp(argv[1], "proc-file") == 0) {
         //do procfile, pode ou não ter prioridade, importa? não basta mandar ao servidor e ele depois manda de volta para cá
         //nada de forks e execs, o servidor já está aberto

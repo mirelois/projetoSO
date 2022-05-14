@@ -158,7 +158,6 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                     close(fd_o);
                     StringToBuffer(r, w, pedido->pedido, buffer);
                     int ex = execlp(buffer, buffer, (char *) NULL);
-                    perror("erro:");
                     write(2, "Failed Exec Manager Child\n", 27);
                     _exit(ex);
                 default: ;
@@ -283,7 +282,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
         write(fd_escrita, buffer, strlen(buffer)+1);
         char concluded[100]; // mudar tamanho
         sprintf(concluded, "concluded (bytes-input: %d, bytes-output: %d)\n", bytes_input, bytes_output);
-        write(pedido->fd, concluded, strlen(concluded)); // Falta o avançado
+        write(pedido->fd, concluded, strlen(concluded));
         _exit(ret);
     }
     return manager;
