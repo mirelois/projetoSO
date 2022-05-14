@@ -190,6 +190,16 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                     if(pipe(p[i]) == -1){
                         write(2, "Failed pipe\n", 13);
                         _exit(-1);
+                    }else{
+                        if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+                            write(2, "Failed to open file out\n", 25);
+                            _exit(-1);
+                        }
+                        if((dup2(fd_o, 1)) == -1){
+                            write(2, "Failed to dup the output\n", 26);
+                            _exit(-1);
+                        }
+                        close(fd_o);
                     }
                 // char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
                 switch(fork()){
@@ -235,15 +245,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                             close(p[i][1]);
                 }
             }
-            if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-                write(2, "Failed to open file out\n", 25);
-                _exit(-1);
-            }
-            if((dup2(fd_o, 1)) == -1){
-                write(2, "Failed to dup the output\n", 26);
-                _exit(-1);
-            }
-            close(fd_o);
+            
 
             int status;
             for(i = 0; i<pedido->n_transfs; i++) {
