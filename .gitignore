@@ -3,5 +3,7 @@ cmake-build-debug/
 CMakeLists.txt
 *.out
 *.exe
+in
+out
 sdstore
 sdstored
