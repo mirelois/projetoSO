@@ -201,14 +201,16 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                         }
                         close(fd_o);
                     }
+                w = tamanhoinicial;
+                StringToBuffer(r, w, pedido->pedido, buffer);
                 // char buffer[strlen(pasta) + strlen(pedido->transfs[i+4]) + 1];
                 switch(fork()){
                     case -1:
                         write(2, "Failed Fork Manager to Child\n", 30);
                         _exit(-1);
                     case 0:
-                        w = tamanhoinicial;
-                        StringToBuffer(r, w, pedido->pedido, buffer);
+                        //w = tamanhoinicial;
+                        //StringToBuffer(r, w, pedido->pedido, buffer);
                         if(i==0){
                             close(p[i][0]);
                             if((dup2(p[i][1], 1)) == -1){
