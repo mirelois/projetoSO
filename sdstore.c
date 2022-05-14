@@ -54,6 +54,7 @@ int main(int argc, char const *argv[])
         n = strArrayToString(argc-i+2, argv+i-2, &string, pid); //testar erro?
         if((fd_escrita = open("entrada", O_WRONLY)) == -1){
             write(2, "Failed to open the named pipe\n", 31);
+            unlink(pidBuffer);
             exit(-1);
         }
         write(fd_escrita, string, n);
@@ -61,6 +62,7 @@ int main(int argc, char const *argv[])
         close(fd_escrita);
         if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
             write(2, "Failed to open the named pipe\n", 31);
+            unlink(pidBuffer);
             return -1;
         }
         char buffer[60]; // tamanho 60 por agora (estimativa maxima)
