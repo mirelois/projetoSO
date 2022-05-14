@@ -198,7 +198,6 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                             write(2, "Failed to dup the output\n", 26);
                             _exit(-1);
                         }
-                        close(fd_o);
                     }
                 w = tamanhoinicial;
                 StringToBuffer(r, w, pedido->pedido, buffer);
