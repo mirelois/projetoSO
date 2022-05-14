@@ -108,34 +108,23 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     return 0;
 }
 
-void escolheEntradaSaidaOneTransf(char *in, char *out){
-    int fd_i, fd_o;
-    if((fd_i = open(in, O_RDONLY)) == -1){
-        write(2,"Failed to open file in\n", 24);
-        _exit(-1);
-    }
-    if((fd_o = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-        write(2, "Failed to open file out\n", 25);
-        _exit(-1);
-    } //pôr if's à volta dos opens (já pus -- carlos)
-    if((dup2(fd_i, 0)) == -1){
-        write(2, "Failed to dup the input\n", 25);
-        _exit(-1);
-    }
-    if((dup2(fd_o, 1)) == -1){
-        write(2, "Failed to dup the output\n", 26);
-        _exit(-1);
-    } //pôr if's à volta dos dups (já pus -- carlos)
-    close(fd_i);
-    close(fd_o);
-}
 
 pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
         //importa a função? vai copiar o processo inteiro?
-    int ret = 0;
+    int ret = 0, bytes_input, bytes_output, fd_i, fd_o;
+    if((fd_i = open(pedido->in, O_RDONLY)) == -1){
+        write(2,"Failed to open file in\n", 24);
+        _exit(-1);
+    }
+    bytes_input = lseek(fd_i, 0, SEEK_END);
+    lseek(fd_i, 0, SEEK_SET);
+    if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+        write(2, "Failed to open file out\n", 25);
+        _exit(-1);
+    }
     pid_t manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
@@ -155,8 +144,18 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                     write(2, "Failed Fork Manager to Child\n", 30);
                     _exit(-1);
                 case 0:
-                    escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
+                    //escolheEntradaSaidaOneTransf(pedido->in, pedido->out);
                     //sprintf(buffer, "%s/%s", pasta, pedido->transfs[4]);
+                    if((dup2(fd_i, 0)) == -1){
+                        write(2, "Failed to dup the input\n", 25);
+                        _exit(-1);
+                    }
+                    close(fd_i);
+                    if((dup2(fd_o, 1)) == -1){
+                        write(2, "Failed to dup the output\n", 26);
+                        _exit(-1);
+                    }
+                    close(fd_o);
                     StringToBuffer(r, w, pedido->pedido, buffer);
                     int ex = execlp(buffer, buffer, (char *) NULL);
                     perror("erro:");
@@ -174,11 +173,11 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
             //0 fork->dups especiais de in->exec
             //realizaTransf(pedido, pasta, 0, p1, p2);
             //não funciona c:
-            int fd_i, fd_o;
-            if((fd_i = open(pedido->in, O_RDONLY)) == -1){
-                write(2, "Failed to open file in\n", 24);
-                _exit(-1);
-            }
+            //int fd_i, fd_o;
+            //if((fd_i = open(pedido->in, O_RDONLY)) == -1){
+            //    write(2, "Failed to open file in\n", 24);
+            //    _exit(-1);
+            //}
             if((dup2(fd_i, 0)) == -1){
                 write(2, "Failed to dup the input\n", 25);
                 _exit(-1);
@@ -191,10 +190,10 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
                         write(2, "Failed pipe\n", 13);
                         _exit(-1);
                     }else{
-                        if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
-                            write(2, "Failed to open file out\n", 25);
-                            _exit(-1);
-                        }
+                        //if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
+                        //    write(2, "Failed to open file out\n", 25);
+                        //    _exit(-1);
+                        //}
                         if((dup2(fd_o, 1)) == -1){
                             write(2, "Failed to dup the output\n", 26);
                             _exit(-1);
@@ -272,6 +271,9 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
             //2) fazemos write para um pipe (saber o tamanho) e fazer dup do pipe para o stdin
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
+        bytes_output = lseek(fd_o, 0, SEEK_END);
+        close(fd_i);
+        close(fd_o);
         int tamanho = getpid();
         //int j;
         //for(j=0; tamanho!=0; j++){ // contar quantas casas
@@ -280,7 +282,9 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
         //cuidado com o tamanho do buffer
         sprintf(buffer, "%d", tamanho);
         write(fd_escrita, buffer, strlen(buffer)+1);
-        write(pedido->fd, "concluded\n", 11); // Falta o avançado
+        char concluded[100]; // mudar tamanho
+        sprintf(concluded, "concluded (bytes-input: %d, bytes-output: %d)\n", bytes_input, bytes_output);
+        write(pedido->fd, concluded, strlen(concluded)); // Falta o avançado
         _exit(ret);
     }
     return manager;
