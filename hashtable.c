@@ -310,10 +310,9 @@ int writeHT (HT *h, void* key, void* value) {
             return -1;
         }
 
-        int new_size;
+        int new_size = (h->size)*2;
 
-        for(new_size = (h->size)*2; !isprime(new_size); new_size++);//finding smallest larger than double h's size
-
+        while(!isprime(++new_size));//finding smallest prime larger than double h's size
 
         if(initHT(new_h, new_size, h->aux_array.aux_array_flag, h->key_type, h->value_type) == -1){//initializig new_h with new size
             return -1;
