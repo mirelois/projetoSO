@@ -136,6 +136,7 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
     h->key_type = key_type;
     h->aux_array.aux_array_flag = aux_array_flag;
     h->size = size;
+    h->entries = 0;
     h->used = 0;
 
     //key type check
@@ -280,6 +281,7 @@ int writeHTaux (HT *h, void* key, void* value) {
         }
 
         h->used++;//increment used
+        h->entries++;//increment entries
 
     }
 
@@ -333,10 +335,11 @@ int writeHT (HT *h, void* key, void* value) {
             h->aux_array.last = new_h->aux_array.last;
         }
 
-        //updates table,size and used
+        //updates table,size, used and entries
         h->tbl = new_h->tbl;
         h->size = new_h->size;
         h->used = new_h->used;
+        h->entries = new_h->entries;
         
     }
     //writes value to hashtable
@@ -425,6 +428,8 @@ int deleteHT (HT *h, void* key) {
             h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
 
         }
+
+        h->entries--;//update entries
 
     }
     return p;

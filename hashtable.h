@@ -28,6 +28,7 @@ typedef struct {
     struct aux_array aux_array;
     int size;
     int used;
+    int entries;
     struct pair *tbl;
 } HT;
 
