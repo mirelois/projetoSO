@@ -50,7 +50,7 @@ int hash(HT* h, void* key_void) {
  */
 int isfreeHT(HT* h, int p) {
     if(h->key_type == STRING) {
-        return strcmp((char*)h->tbl[p].key, EMPTY_STRING) == 0 || strcmp((char*)h->tbl[p].key, DELETED_STRING) == 0;
+        return strncmp((char*)h->tbl[p].key, EMPTY_STRING, MAX_TRANSF_SIZE) == 0 || strncmp((char*)h->tbl[p].key, DELETED_STRING, MAX_TRANSF_SIZE) == 0;
     }
     if(h->key_type == PID_T) {
         return *((pid_t*)h->tbl[p].key) == EMPTY_PID_T || *((pid_t*)h->tbl[p].key) == DELETED_PID_T;
@@ -92,7 +92,7 @@ int freeValueHT(HT* h, int p) {
 int keycmp(HT* h, void* key1, void* key2) {
     //type check
     if(h->key_type == STRING) {
-        return strcmp((char*)key1, (char*)key2);
+        return strncmp((char*)key1, (char*)key2, MAX_TRANSF_SIZE);
     }
     if(h->key_type == PID_T) {
         return *((pid_t*)key1) - *((pid_t*)key2);
@@ -148,7 +148,7 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
             if((h->tbl[i].key = (void*)malloc(MAX_TRANSF_SIZE*sizeof(char))) == NULL){
                 return -1;
             }
-            strcpy(h->tbl[i].key, EMPTY_STRING);
+            strncpy(h->tbl[i].key, EMPTY_STRING, MAX_TRANSF_SIZE);
             h->tbl[i].value = NULL;
         }
 
@@ -273,7 +273,7 @@ int writeHTaux (HT *h, void* key, void* value) {
 
         //copy key from key to hashtable
         if (h->key_type == STRING) {
-            strcpy(h->tbl[p].key, (char*)key);
+            strncpy(h->tbl[p].key, (char*)key, MAX_TRANSF_SIZE);
         }else if (h->key_type == PID_T) {
             *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
         }else{
@@ -399,7 +399,7 @@ int deleteHT (HT *h, void* key) {
 
         //checks key_type and replaces with respective DELETED
         if (h->key_type == STRING) {
-            strcpy(h->tbl[p].key, DELETED_STRING);
+            strncpy(h->tbl[p].key, DELETED_STRING, MAX_TRANSF_SIZE);
         }else if (h->key_type == PID_T) {
             *(pid_t*)(h->tbl[p].key) = DELETED_PID_T;
         }else{
