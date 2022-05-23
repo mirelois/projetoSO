@@ -447,7 +447,6 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
             //deve de ser input
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
-                write(1, pipeParse, strlen(pipeParse));
                 write(2, "Failed to open pipe to client\n", 31);
                 //rejeita pedido
             } else {
@@ -480,12 +479,13 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                     } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
                         deepFreePedido(pedido);
                         return -1;
+                    } else {
+                        n_transfs_pendingQ++;
+                        //executaPedido(pedido, pasta);
+                        //avisar o cliente que foi posto em pending
+                        sprintf(pipeParse, "pending %s\n", pedido->pedido);
+                        write(pedido->fd, pipeParse, strlen(pipeParse));
                     }
-                    n_transfs_pendingQ++;
-                    //executaPedido(pedido, pasta);
-                    //avisar o cliente que foi posto em pending
-                    sprintf(pipeParse, "pending %s\n", pedido->pedido);
-                    write(pedido->fd, pipeParse, strlen(pipeParse));
                     pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
                     if (pedido != NULL) {
                         n_transfs_pendingQ--;
