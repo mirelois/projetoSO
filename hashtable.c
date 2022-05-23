@@ -119,7 +119,11 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
     if (aux_array_flag) {
         if((h->aux_array.array = malloc(2*size*sizeof(int))) == NULL) { //aux_array_flag initialization
             return -1;//error condition if malloc fails
-        };
+        }
+        for (int i = 0; i<size;i++) {
+            h->aux_array.array[POS(i,0)] = -1;
+            h->aux_array.array[POS(i,1)] = -1;
+        }
         h->aux_array.last = -1; //initial last position is set initialy as -1
     }else {
         h->aux_array.array = NULL;// if aux_array is not requested aux_array pointer is set to NULL
@@ -307,7 +311,7 @@ int writeHT (HT *h, void* key, void* value) {
 
     if(charge >= MAX_CHARGE) {//increasing h size if charge surpasses limit
 
-        HT *new_h = malloc(sizeof(struct hashTable));//allocating size for new hashtable
+        HT *new_h = malloc(sizeof(HT));//allocating size for new hashtable
 
         if(new_h == NULL){//malloc fail condition
             return -1;
@@ -425,8 +429,11 @@ int deleteHT (HT *h, void* key) {
             //position removal logic
             int i1 = h->aux_array.array[POS(p,0)];
             int i2 = h->aux_array.array[POS(p,1)];
-            h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
-            h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
+            if (i1!=-1)
+                h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
+            if (i2!=-1)
+                h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
+
 
         }
 
