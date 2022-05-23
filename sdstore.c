@@ -42,8 +42,8 @@ int main(int argc, char const *argv[])
             unlink(pidBuffer);
             return -1;
         }
-        char buffer[200]; // se calhar bem mais que 200 maybe
-        while((bytesRead = read(fd_leitura, buffer, 60)) > 0){
+        char buffer[256]; // se calhar bem mais que 200 maybe
+        while((bytesRead = read(fd_leitura, buffer, 64)) > 0){
             write(1, buffer, bytesRead);
         }
         close(fd_leitura);

@@ -117,22 +117,23 @@ pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
     int ret = 0, bytes_input, bytes_output, fd_i, fd_o;
     if((fd_i = open(pedido->in, O_RDONLY)) == -1){
         write(2,"Failed to open file in\n", 24);
-        _exit(-1);
+        return -1;
     }
     bytes_input = lseek(fd_i, 0, SEEK_END);
     lseek(fd_i, 0, SEEK_SET);
     if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
         write(2, "Failed to open file out\n", 25);
-        _exit(-1);
+        return -1;
     }
     pid_t manager;
     if ((manager = fork()) == -1) {
         //se não conseguires dar fork ao manager?
         write(2,"Failed Fork to Manager\n", 24);
     } else if (manager == 0) {
-        write(pedido->fd, "processing\n", 12);
         int r=0, w, tamanhoinicial = strlen(pasta);
         char buffer[tamanhoinicial + 33];
+        sprintf(buffer, "processing %s\n", pedido->pedido);
+        write(pedido->fd, buffer, strlen(buffer));
         for(w=0; pasta[w]!='\0'; w++)
             buffer[w] = pasta[w];
         //buffer[w++] = '/';
@@ -399,21 +400,15 @@ int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
 }
 
 int pedidoToString(Pedido *pedido, char **dest) {
-    int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 14;
+    int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 15; //proc-file + 4 espaços + \n + \0
     (*dest) = malloc(n);
-    sprintf((*dest), "%s %s %s %s %s", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido);
+    sprintf((*dest), "%s %s %s %s %s\n", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido); //como só é usado para imprimir mais vale por o \n
     return n;
 }
 
-int main(int argc, char const *argv[]) {
+int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
-    signal(SIGTERM, term_handler);
-
-    if((mkfifo("entrada", 0666)) == -1){
-        write(2, "Failed to create Named pipe entrada\n", 37);
-        return -1;
-    }
 
     int fd_leitura, fd_escrita;
 
@@ -423,43 +418,6 @@ int main(int argc, char const *argv[]) {
     }
     if ((fd_escrita = open("entrada", O_WRONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
-        return -1;
-    }
-
-    int fdConfig;
-    if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
-        //como validar um path (pasta)?
-        write(2, "Failed to open config file\n", 28);
-        return -1;
-    }
-    
-    HT *maxs = malloc(sizeof(HT));
-    if (initHT(maxs, INIT_DICT_SIZE, 1, STRING, INT) == -1) {
-        write(2, "No space for Hashtable", 23);
-        freeHT(maxs);
-        return -1;
-    }
-    //incializar a hashtables dos máximos
-    if (readConfig(fdConfig, maxs) == -1) {
-        write(2, "Failed to read config\n", 23);
-        return -1;
-    }
-
-    //fix manhoso
-    HT *curr = malloc(sizeof(HT));
-    if (initHT(curr, INIT_DICT_SIZE, 0, STRING, INT) == -1) {
-        write(2, "No space for Hashtable\n", 24);
-        freeHT(maxs);
-        freeHT(curr);
-        return -1;
-    }
-
-    HT *proc = malloc(sizeof(HT));
-    if (initHT(proc, INIT_DICT_SIZE, 1, PID_T, PEDIDO) == -1) {
-        write(2, "No space for Hashtable\n", 24);
-        freeHT(maxs);
-        freeHT(curr);
-        freeHT(proc);
         return -1;
     }
 
@@ -513,10 +471,6 @@ int main(int argc, char const *argv[]) {
                     //Leitura do pedido
                     Pedido *pedido;
                     if ((w = createPedido(pipeParse, &pedido, maxs, n_pedido++, fd_pedido)) == -1) {
-                        //erro de execução
-                        freeHT(maxs);
-                        freeHT(curr);
-                        freeHT(proc);
                         deepFreePedido(pedido);
                         return -1;
                     } else if (w == 1) {
@@ -524,35 +478,40 @@ int main(int argc, char const *argv[]) {
                         deepFreePedido(pedido);
                         //avisar o cliente que deu asneira se tiver fd aberto lmao
                     } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
-                        freeHT(maxs);
-                        freeHT(curr);
-                        freeHT(proc);
                         deepFreePedido(pedido);
                         return -1;
                     }
                     n_transfs_pendingQ++;
                     //executaPedido(pedido, pasta);
                     //avisar o cliente que foi posto em pending
-                    write(pedido->fd, "pending\n", 9);
+                    sprintf(pipeParse, "pending %s\n", pedido->pedido);
+                    write(pedido->fd, pipeParse, strlen(pipeParse));
                     pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
                     if (pedido != NULL) {
                         n_transfs_pendingQ--;
                         //adicionar aos em processamento
                         //avisar o cliente que foi adicionado aos em processamento
                         int *pid_manager = malloc(sizeof(int));
-                        *pid_manager = executaPedido(pedido, argv[2], fd_escrita);
-                        if (writeHT(proc, (void *) pid_manager, pedido) == -1) {
+                        if ((*pid_manager = executaPedido(pedido, pasta, fd_escrita)) == -1) {
+                            write(pedido->fd, "Failed Request\n", 16);
+                            deepFreePedido(pedido);
+                        }
+                        else if (writeHT(proc, (void *) pid_manager, pedido) == -1) {
                             write(2, "Failed to write to proc\n", 5);
                         }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
-                    char *string;
+                    char **string = malloc(sizeof(char**));
                     int i, bytes_read;
-                    for (i = proc->aux_array.last; i != -1; w = proc->aux_array.array[POS(i, 0)]) {
-                        bytes_read = pedidoToString((Pedido *) proc->tbl[i].value, &string);
-                        write(fd_pedido, string, bytes_read);
-                        free(string);
+                    write(fd_pedido, "connected: ", 12);
+                    for (i = proc->aux_array.last; i != -1; i = proc->aux_array.array[POS(i, 0)]) {
+                        bytes_read = pedidoToString((Pedido *) proc->tbl[i].value, string);
+                        write(fd_pedido, (*string), bytes_read);
+                        free(*string);
                     }
+                    write(fd_pedido, "disconnected\n", 14);
+                    free(string);
+                    close(fd_pedido);
                 } else {
                     //borradovski
                 }
@@ -587,16 +546,74 @@ int main(int argc, char const *argv[]) {
                 //adicionar aos em processamento
                 //avisar o cliente que foi adicionado aos em processamento
                 int *pid_manager = malloc(sizeof(int));
-                *pid_manager = executaPedido(pedido, argv[2], fd_escrita);
-                writeHT(proc, (void *) pid_manager, pedido);
+                if ((*pid_manager = executaPedido(pedido, pasta, fd_escrita)) == -1) {
+                    write(pedido->fd, "Failed request\n", 16);
+                    deepFreePedido(pedido);
+                } else {
+                    writeHT(proc, (void *) pid_manager, pedido);
+                }
             }
         }
     }
     close(fd_escrita);
     close(fd_leitura);
+}
+
+int main(int argc, char const *argv[]) {
+    int r = 0;
+    signal(SIGTERM, term_handler);
+
+    if((mkfifo("entrada", 0666)) == -1){
+        unlink("entrada");
+        if((mkfifo("entrada", 0666)) == -1){
+            write(2, "Failed to create Named pipe entrada\n", 37);
+            return -1;
+        }
+    }
+
+    int fdConfig;
+    if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
+        //como validar um path (pasta)?
+        write(2, "Failed to open config file\n", 28);
+        return -1;
+    }
+
+    HT *maxs = malloc(sizeof(HT));
+    if (initHT(maxs, INIT_DICT_SIZE, 1, STRING, INT) == -1) {
+        write(2, "No space for Hashtable", 23);
+        freeHT(maxs);
+        return -1;
+    }
+    //incializar a hashtables dos máximos
+    if (readConfig(fdConfig, maxs) == -1) {
+        write(2, "Failed to read config\n", 23);
+        freeHT(maxs);
+        return -1;
+    }
+
+    //fix manhoso
+    HT *curr = malloc(sizeof(HT));
+    if (initHT(curr, INIT_DICT_SIZE, 0, STRING, INT) == -1) {
+        write(2, "No space for Hashtable\n", 24);
+        freeHT(maxs);
+        freeHT(curr);
+        return -1;
+    }
+
+    HT *proc = malloc(sizeof(HT));
+    if (initHT(proc, INIT_DICT_SIZE, 1, PID_T, PEDIDO) == -1) {
+        write(2, "No space for Hashtable\n", 24);
+        freeHT(maxs);
+        freeHT(curr);
+        freeHT(proc);
+        return -1;
+    }
+    if (r != -1) {
+        r = run(argv[2], maxs, curr, proc);
+    }
     freeHT(maxs);
     freeHT(curr);
     freeHT(proc);
     unlink("entrada");
-    return 0;
+    return r;
 }
