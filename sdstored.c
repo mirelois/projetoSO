@@ -60,7 +60,6 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
  * @brief Criar um objeto do tipo Pedido
  * 
  * Recebe uma string do servidor para ser colocado num Pedido.
- * Salta o indicador "proc-file".
  * Coloca no prio a string com a prioridade; no in a string com o nome do ficheiro de input; no out a string com o nome do ficheiro de output.
  * Cria o dicionário a ser usada dentro do Pedido para guardar quantas transformações de cada tipo tem.
  * Para cada pedido na string, acrescenta 1 à sua entrada do dicionário, recusando o pedido se exceder o máximo.
@@ -76,9 +75,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     (*dest)->id = n_pedido;
     char buffer[33];
     //supor que tem a prioridade, in e out
-    int r = 0, w, i; //saltar o proc-file à frente
-    //segunda parte da string é o número de argumentos
-    //eu sei que recebi pelo menos 5 coisas, com o proc-file
+    int r = 0, w, i;
     (*dest)->fd = fd;
     w = 0;
     StringToBuffer(r, w, string, buffer)
@@ -108,7 +105,14 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     return 0;
 }
 
-
+/**
+ * @brief Função que executa um pedido, criando a pipeline através de um filho ("manager")
+ * 
+ * @param pedido Pedido a ser executado
+ * @param pasta Pasta onde se encontram os executáveis
+ * @param fd_escrita Pid do pipe com nome do servidor onde escrever
+ * @return pid_t Pid do manager que é devolvido para o servidor
+ */
 pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
@@ -346,6 +350,16 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     return 1;
 }
 
+/**
+ * @brief Função que escolhe um pedido da Pending Queue
+ * 
+ * Escolhe o pedido com maior prioridade e tenta executar o com menor id, isto é, o que chegou primeiro à queue
+ * 
+ * @param queue PendingQueue onde se encontram os pedidos
+ * @param maxs Hashtable dos máximos
+ * @param curr Hashtable dos pedidos em processamento
+ * @return Pedido* 
+ */
 Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     int i = MAX_PRIORITY;
     LList *nodo;
@@ -373,32 +387,13 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
     return NULL;
 }
 
-int createInputChild(int pipe_input[2], int *pid_input_child, int fd_leitura) {
-    *pid_input_child = fork();
-    switch (*pid_input_child)
-    {
-    case 0: ;
-        int bytes_read,r;
-        char pipeRead[4]; // Colocar 512 em vez de Max_Buff ? 
-        //read(0, pipeRead, MAX_BUFF);
-        //lembrar de tirar
-        //for (r = 0; r<MAX_BUFF; r++) {
-        //    if (pipeRead[r] == EOF) {
-        //        pipeRead[r] = '\0';
-        //    }
-        //}
-        bytes_read = read(fd_leitura, pipeRead, 4); // falta tratar erros
-        //loop de read do pipe com nome para buffer
-        close(pipe_input[0]);
-        write(pipe_input[1], pipeRead, bytes_read);
-        close(pipe_input[1]);
-        _exit(0);
-
-        default: 
-            return 0;
-    }
-}
-
+/**
+ * @brief Função auxiliar que através de um pedido constrói a string que deve ser impressa no comando status
+ * 
+ * @param pedido Pedido de onde retirar as informações
+ * @param dest String destino onde escrever
+ * @return int Número de bytes escritos
+ */
 int pedidoToString(Pedido *pedido, char **dest) {
     int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 15; //proc-file + 4 espaços + \n + \0
     (*dest) = malloc(n);
