@@ -307,7 +307,7 @@ int writeHT (HT *h, void* key, void* value) {
 
     if(charge >= MAX_CHARGE) {//increasing h size if charge surpasses limit
 
-        HT *new_h = malloc(sizeof(HT));//allocating size for new hashtable
+        HT *new_h = malloc(sizeof(struct hashTable));//allocating size for new hashtable
 
         if(new_h == NULL){//malloc fail condition
             return -1;

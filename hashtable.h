@@ -22,7 +22,7 @@ struct aux_array {
     int aux_array_flag;
 };
     
-typedef struct {
+typedef struct hashTable {
     int value_type;
     int key_type;
     struct aux_array aux_array;
