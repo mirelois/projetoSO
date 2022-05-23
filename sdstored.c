@@ -406,6 +406,15 @@ int pedidoToString(Pedido *pedido, char **dest) {
     return n;
 }
 
+/**
+ * @brief Função que executa o ciclo principal do servidor
+ * 
+ * @param pasta String com a pasta onde se encontram os executáveis
+ * @param maxs Hashtable dos valores máximos para as transformações
+ * @param curr Hashtable dos valores atuais para as transformações
+ * @param proc Hashtable dos pedidos em processamento
+ * @return int Valor de erro
+ */
 int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente

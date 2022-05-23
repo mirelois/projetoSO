@@ -174,7 +174,8 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
  * @param h 
  */
 void AuxFree(HT *h) {
-    if(h->aux_array.aux_array_flag) {
+    //testar se o array existe mesmo, vai que
+    if(h->aux_array.aux_array_flag && h->aux_array.array) {
         free(h->aux_array.array);
     }
     for(int i = 0; i < h->size; i++) {
