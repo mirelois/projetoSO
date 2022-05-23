@@ -550,7 +550,7 @@ int main(int argc, char const *argv[]) {
                     int i, bytes_read;
                     for (i = proc->aux_array.last; i != -1; w = proc->aux_array.array[POS(i, 0)]) {
                         bytes_read = pedidoToString((Pedido *) proc->tbl[i].value, &string);
-                        write(((Pedido *)proc->tbl[i].value)->fd, string, bytes_read);
+                        write(fd_pedido, string, bytes_read);
                         free(string);
                     }
                 } else {
