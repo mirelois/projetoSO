@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
         if((fd_escrita = open("entrada", O_WRONLY)) == -1){
             write(2, "Failed to open the named pipe\n", 31);
             unlink(pidBuffer);
-            exit(-1);
+            return(-1);
         }
         write(fd_escrita, bufferEscrita, strlen(bufferEscrita)+1);
         close(fd_escrita);

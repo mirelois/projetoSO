@@ -194,6 +194,8 @@ void AuxFree(HT *h) {
  * @param h hashtable to free
  */
 void freeHT(HT *h) {
+    //lucena: espalhei condições de teste só para não dar free a coisas que já possam estar a null (tentar proteger de segfaults idiotas)
+
     //aux_array check
     if(h->aux_array.aux_array_flag) {//if aux array has ben created it must be freed
         free(h->aux_array.array);
@@ -204,10 +206,13 @@ void freeHT(HT *h) {
         if(h->tbl[i].value != NULL){//free all allocated values
             freeValueHT(h, i);
         }
-
-        free(h->tbl[i].key);//free all keys
+        if (h->tbl[i].key) {
+            free(h->tbl[i].key);//free all keys
+        }
     }
-    free(h->tbl);//free hashtable
+    if (h->tbl) {
+        free(h->tbl);//free hashtable
+    }
     free(h);//free pointer to h
 }
 
