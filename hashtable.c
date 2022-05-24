@@ -395,6 +395,7 @@ int readHT(HT *h, void* key, void** value){
  * 
  * @param h pointer to hashtable were entrie will be deleted
  * @param key key to eliminate
+ * @param free_pedido_flag flag that indicates if Pedido should be freed if it is value to be eliminated
  * @return int position were key was eliminated or -1
  */
 int deleteHT (HT *h, void* key, int free_pedido_flag) {
