@@ -127,8 +127,6 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
         h->aux_array.array = NULL;// if aux_array is not requested aux_array pointer is set to NULL
     }
 
-    
-
     if((h->tbl = calloc(size, sizeof(struct pair))) == NULL){//memory allocation for hashtable
         return -1;//error condition if calloc fails
     }
@@ -276,6 +274,7 @@ int writeHTaux (HT *h, void* key, void* value) {
                 h->aux_array.array[POS(last,1)] = p;
             }
             h->aux_array.array[POS(p,0)] = last;
+            h->aux_array.array[POS(p,1)] = -1;
             h->aux_array.last = p;
         }
 
@@ -432,8 +431,7 @@ int deleteHT (HT *h, void* key, int free_pedido_flag) {
             //position removal logic
             int i1 = h->aux_array.array[POS(p,0)];
             int i2 = h->aux_array.array[POS(p,1)];
-            if (i1!=-1)
-                h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
+            h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
             if (i2!=-1)
                 h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
 
