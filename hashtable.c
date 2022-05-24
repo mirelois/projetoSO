@@ -65,10 +65,12 @@ int isfreeHT(HT* h, int p) {
  * @param p position on whitch memory should be freed
  * @return int 
  */
-int freeValueHT(HT* h, int p) {
+int freeValueHT(HT* h, int p, int flg) {
     //value type check
     if(h->value_type == PEDIDO) {
-        deepFreePedido(h->tbl[p].value);//deep free of pedido
+        if(flg){
+            deepFreePedido(h->tbl[p].value);//deep free of pedido
+        }
     }else if (h->value_type == INT) {
         free(h->tbl[p].value);// simple free for integer
     }else {
@@ -119,10 +121,6 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
     if (aux_array_flag) {
         if((h->aux_array.array = malloc(2*size*sizeof(int))) == NULL) { //aux_array_flag initialization
             return -1;//error condition if malloc fails
-        }
-        for (int i = 0; i<size;i++) {
-            h->aux_array.array[POS(i,0)] = -1;
-            h->aux_array.array[POS(i,1)] = -1;
         }
         h->aux_array.last = -1; //initial last position is set initialy as -1
     }else {
@@ -204,7 +202,7 @@ void freeHT(HT *h) {
     for(int i = 0; i < h->size; i++) {
         
         if(h->tbl[i].value != NULL){//free all allocated values
-            freeValueHT(h, i);
+            freeValueHT(h, i, 1);
         }
         if (h->tbl[i].key) {
             free(h->tbl[i].key);//free all keys
@@ -254,7 +252,7 @@ int writeHTaux (HT *h, void* key, void* value) {
 
     //if value is already allocated free it
     if(h->tbl[p].value != NULL){
-        freeValueHT(h, p);
+        freeValueHT(h, p, 1);
     }
 
     //copy value from value to hashtable
@@ -400,7 +398,7 @@ int readHT(HT *h, void* key, void** value){
  * @param key key to eliminate
  * @return int position were key was eliminated or -1
  */
-int deleteHT (HT *h, void* key) {
+int deleteHT (HT *h, void* key, int free_pedido_flag) {
 
     void* x;
     int p = readHT(h, key, &x);//finds position of key
@@ -418,7 +416,7 @@ int deleteHT (HT *h, void* key) {
 
         //frees value associated with key and sets it to NULL
         if(h->tbl[p].value != NULL){
-            freeValueHT(h, p);
+            freeValueHT(h, p, free_pedido_flag);
             h->tbl[p].value = NULL;
         }
         

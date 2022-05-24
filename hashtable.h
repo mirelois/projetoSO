@@ -59,7 +59,7 @@ int writeHT (HT *h, void* key, void* value);
 
 int readHT (HT *h, void* key, void** value);
 
-int deleteHT (HT *h, void* key);
+int deleteHT (HT *h, void* key, int free_pedido_flag);
 
 //to be eliminated
 int printHT(HT *h);
