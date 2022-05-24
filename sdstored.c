@@ -336,16 +336,18 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     for (i = 0, s = maxs->aux_array.last; s != -1 && i<maxs->entries; i++, s = maxs->aux_array.array[POS(s, 0)]) {
         strcpy(transf, (char*)(maxs->tbl[s].key));
         if (readHT(pedido->hashtable, (void *) (transf), (void **) &new) != -1 && readHT(maxs, (void*) (transf), (void**) &max) != -1) {
-            //printf("%d\n", *new);
-            if (readHT(curr, (void *) (transf), (void **) &c) == -1) {
+            if (*new > 0) {
+                if (readHT(curr, (void *) (transf), (void **) &c) == -1) {
                 char *wr = strdup(transf);
                 c = malloc(sizeof(int));
                 *c = 0;
                 writeHT(curr, (char *) wr, (void *) c);
+                }
+                if (*max - *c < *new) {
+                    return 0;
+                }
             }
-            if (*max - *c < *new) {
-                return 0;
-            }
+            //printf("%d\n", *new);
         }
     }
     return 1;
@@ -580,7 +582,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
             //deve de ser termino do manager
             //int key = atoi(pipeParse);
             //retirar aos curr
-
+            
             //retirar aos proc
             waitpid(pid_read, &status, 0);
             //testar os erros do status
