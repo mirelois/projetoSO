@@ -45,6 +45,7 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
         c = 1;
     } else {
         c = (*curr);
+        c++;
     }
     if (c > *max) {
         //rejeitar o pedido
@@ -332,17 +333,17 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
 int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
     char transf[MAX_TRANSF_SIZE];
     int i, s, *new, *c, *max;
-    for (i = 0, s = maxs->aux_array.last; s != -1 && i<pedido->hashtable->used; i++, s = maxs->aux_array.array[POS(s, 0)]) {
-        strcpy(transf, (char *) maxs->tbl[i].key);
-        if (readHT(pedido->hashtable, (void *) transf, (void **) &new) != -1) {
-            readHT(maxs, transf, &max);
-            if (readHT(curr, transf, &c) == -1) {
+    for (i = 0, s = maxs->aux_array.last; s != -1 && i<maxs->entries; i++, s = maxs->aux_array.array[POS(s, 0)]) {
+        strcpy(transf, (char*)(maxs->tbl[s].key));
+        if (readHT(pedido->hashtable, (void *) (transf), (void **) &new) != -1 && readHT(maxs, (void*) (transf), (void**) &max) != -1) {
+            //printf("%d\n", *new);
+            if (readHT(curr, (void *) (transf), (void **) &c) == -1) {
                 char *wr = strdup(transf);
                 c = malloc(sizeof(int));
                 *c = 0;
-                writeHT(curr, wr, c);
+                writeHT(curr, (char *) wr, (void *) c);
             }
-            if (max - c < new) {
+            if (*max - *c < *new) {
                 return 0;
             }
         }
@@ -395,10 +396,36 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
  * @return int Número de bytes escritos
  */
 int pedidoToString(Pedido *pedido, char **dest) {
-    int n = strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 15; //proc-file + 4 espaços + \n + \0
+    int n = 0, tmp = pedido->id;
+    //pedido->id sempre >0
+    while (tmp != 0) {
+        tmp /= 10;
+        n++;
+    }
+    n += strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 22; //task + proc-file + 6 espaços + \n + \0 + ':'
     (*dest) = malloc(n);
-    sprintf((*dest), "%s %s %s %s %s\n", "proc-file", pedido->prio, pedido->in, pedido->out, pedido->pedido); //como só é usado para imprimir mais vale por o \n
+    sprintf((*dest), "Task %d: proc-file %s %s %s %s\n", pedido->id, pedido->prio, pedido->in, pedido->out, pedido->pedido); //como só é usado para imprimir mais vale por o \n
     return n;
+}
+
+int addCurr(Pedido *pedido, HT *curr, HT *maxs) {
+    int i, *add, *c, count;
+    char *transf;
+    for (i = maxs->aux_array.last; i!=-1; i = maxs->aux_array.array[POS(i,0)]) {
+        transf = strdup((char *) (maxs->tbl[i].key));
+        if (readHT(pedido->hashtable, transf, &add) != -1) {
+            if (readHT(curr, transf, &c) == -1) {
+                count = 0;
+            } else {
+                count = *c;
+            }
+            //dos inteiros a HT faz cópia, não esquecer
+            count += *add;
+            writeHT(curr, transf, &count);
+        }
+    }
+    free(transf);
+    return 0;
 }
 
 /**
@@ -494,7 +521,9 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                     if (pedido != NULL) {
                         n_transfs_pendingQ--;
                         //adicionar aos em processamento
-                        //avisar o cliente que foi adicionado aos em processamento
+                        if (addCurr(pedido, curr, maxs) == -1) {
+                            write(2, "Failed to write to curr\n", 25);
+                        }
                         int *pid_manager = malloc(sizeof(int));
                         if ((*pid_manager = executaPedido(pedido, pasta, fd_escrita)) == -1) {
                             write(pedido->fd, "Failed Request\n", 16);
@@ -505,15 +534,27 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                         }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
-                    char **string = malloc(sizeof(char**));
-                    int i, bytes_read;
-                    write(fd_pedido, "connected: ", 12);
-                    for (i = proc->aux_array.last; i != -1; i = proc->aux_array.array[POS(i, 0)]) {
-                        bytes_read = pedidoToString((Pedido *) proc->tbl[i].value, string);
-                        write(fd_pedido, (*string), bytes_read);
-                        free(*string);
+                    char **string = malloc(sizeof(char**) * proc->entries);
+                    int i, bytes_read, j;
+                    for (i = proc->aux_array.last, j = 0; i != -1 && j < proc->entries; i = proc->aux_array.array[POS(i, 0)], j++) {
+                        bytes_read = pedidoToString((Pedido *) proc->tbl[i].value, &(string[i]));
+                        write(fd_pedido, (string[i]), bytes_read);
+                        free(string[i]);
                     }
-                    write(fd_pedido, "disconnected\n", 14);
+                    //possível a partir deste array construir uma string com strcat, os bytes_read é o número de bytes necessários
+                    //escrever num só write
+
+                    int *c, count;
+                    char *buffer[1024]; //arranjar melhor maneira de fazer este buffer
+                    for (i = maxs->aux_array.last; i!=-1;i = maxs->aux_array.array[POS(i,0)]) {
+                        if (readHT(curr, (char*) (maxs->tbl[i].key), (void**) &c) == -1) {
+                            count = 0;
+                        } else {
+                            count = *c;
+                        }
+                        sprintf(buffer, "%s: %d/%d\n", (char*) (maxs->tbl[i].key), count, *((int*)(maxs->tbl[i].value)));
+                        write(fd_pedido, buffer, strlen(buffer));
+                    }
                     free(string);
                     close(fd_pedido);
                 } else {
@@ -538,16 +579,22 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
         } else if (proc_pid_pos >= 0) {
             //deve de ser termino do manager
             //int key = atoi(pipeParse);
+            //retirar aos curr
+
             //retirar aos proc
             waitpid(pid_read, &status, 0);
             //testar os erros do status
             deleteHT(proc, &pid_read);
+            
 
             Pedido *pedido;
             pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
             if (pedido != NULL) {
                 n_transfs_pendingQ--;
                 //adicionar aos em processamento
+                if (addCurr(pedido, curr, maxs) == -1) {
+                    write(2, "Failed to write to curr\n", 25);
+                }
                 //avisar o cliente que foi adicionado aos em processamento
                 int *pid_manager = malloc(sizeof(int));
                 if ((*pid_manager = executaPedido(pedido, pasta, fd_escrita)) == -1) {
