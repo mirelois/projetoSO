@@ -174,7 +174,7 @@ int initHT(HT *h, int size, int aux_array_flag, int key_type, int value_type) {
  * @param h 
  */
 void AuxFree(HT *h) {
-    //testar se o array existe mesmo, vai que
+    //lucena: testar se o array existe mesmo, vai que
     if(h->aux_array.aux_array_flag && h->aux_array.array) {
         free(h->aux_array.array);
     }
@@ -196,7 +196,6 @@ void freeHT(HT *h) {
     if(h->aux_array.aux_array_flag) {//if aux array has ben created it must be freed
         free(h->aux_array.array);
     }
-
     for(int i = 0; i < h->size; i++) {
         
         if(h->tbl[i].value != NULL){//free all allocated values
@@ -432,7 +431,8 @@ int deleteHT (HT *h, void* key, int free_pedido_flag) {
             //position removal logic
             int i1 = h->aux_array.array[POS(p,0)];
             int i2 = h->aux_array.array[POS(p,1)];
-            h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
+            if (i1!=-1)
+                h->aux_array.array[POS(i1,1)] = h->aux_array.array[POS(p,1)];
             if (i2!=-1)
                 h->aux_array.array[POS(i2,0)] = h->aux_array.array[POS(p,0)];
 

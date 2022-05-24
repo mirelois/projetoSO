@@ -14,10 +14,14 @@
         bytes_read_pipe = read(fd_leitura, pipeRead, MAX_BUFF);\
     }\
 
+
+int fd_leitura, fd_escrita;
 int flag_term = 1;
 
 void term_handler(int signum) {
+    write(1, "help\n", 5);
     flag_term = 0;
+    close(fd_escrita);
 }
 
 //estrutura de dados para implementar o dicionário dos limites
@@ -114,7 +118,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
  * @param fd_escrita Pid do pipe com nome do servidor onde escrever
  * @return pid_t Pid do manager que é devolvido para o servidor
  */
-pid_t executaPedido(Pedido *pedido, char *pasta, int fd_escrita) {
+pid_t executaPedido(Pedido *pedido, char *pasta) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
@@ -452,8 +456,6 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
 
-    int fd_leitura, fd_escrita;
-
     if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
         write(2, "Failed to open the named pipe\n", 31);
         return -1;
@@ -474,10 +476,10 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
     Pedido *pedido_read;
     r = 0;
-    while(flag_term || n_transfs_pendingQ != 0 || curr->entries) {
+    while(flag_term || n_transfs_pendingQ > 0 || proc->entries) {
         TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         w = 0;
-        while (pipeRead[r] != ' ' && pipeRead[r] != '\0') {
+        while (bytes_read_pipe > 0 && pipeRead[r] != ' ' && pipeRead[r] != '\0') {
             pipeParse[w++] = pipeRead[r++];
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         }
@@ -536,7 +538,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                             write(2, "Failed to write to curr\n", 25);
                         }
                         int *pid_manager = malloc(sizeof(int));
-                        if ((*pid_manager = executaPedido(pedido, pasta, fd_escrita)) == -1) {
+                        if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
                             write(pedido->fd, "Failed Request\n", 16);
                             deepFreePedido(pedido);
                         }
@@ -572,7 +574,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                     //borradovski
                 }
             }
-        } else if (proc_pid_pos == -1) {
+        } else if (bytes_read_pipe > 0 && proc_pid_pos == -1) {
             
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
@@ -597,10 +599,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
             //retirar aos proc
             waitpid(pid_read, &status, 0);
             //testar os erros do status
-            deleteHT(proc, (void *) &pid_read);
-            
-
-            
+            deleteHT(proc, (void *) &pid_read, 1);
             pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
             if (pedido != NULL) {
                 n_transfs_pendingQ--;
@@ -610,7 +609,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                 }
                 //avisar o cliente que foi adicionado aos em processamento
                 int *pid_manager = malloc(sizeof(int));
-                if ((*pid_manager = executaPedido(pedido, pasta, fd_escrita)) == -1) {
+                if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
                     write(pedido->fd, "Failed request\n", 16);
                     deepFreePedido(pedido);
                 } else {
@@ -619,13 +618,22 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
             }
         }
     }
-    close(fd_escrita);
     close(fd_leitura);
 }
 
 int main(int argc, char const *argv[]) {
     int r = 0;
     signal(SIGTERM, term_handler);
+    
+    int pid_server = getpid();
+    int tamanho = 0, tmp = pid_server;
+    while (tmp != 0) {
+        tamanho++;
+        tmp /= 10;
+    }
+    char buffer[tamanho+1];
+    sprintf(buffer, "%d\n", pid_server);
+    write(1, buffer, tamanho+1);
 
     if((mkfifo("entrada", 0666)) == -1){
         unlink("entrada");
@@ -679,5 +687,6 @@ int main(int argc, char const *argv[]) {
     freeHT(curr);
     freeHT(proc);
     unlink("entrada");
+    write(1, "Sepukku gracioso!\n", 19);
     return r;
 }
