@@ -624,7 +624,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                     write(2, "Failed to write to curr\n", 25);
                 }
                 //avisar o cliente que foi adicionado aos em processamento
-                int *pid_manager = (int *) malloc(sizeof(int), 1);
+                int *pid_manager = (int *) malloc(sizeof(int));
                 if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
                     write(pedido->fd, "Failed request\n", 16);
                     deepFreePedido(pedido);
