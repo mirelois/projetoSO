@@ -603,7 +603,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
                 write(2, "Failed to open pipe to client\n", 31);
             }
-            write(fd_pedido, "Servidor em processo de terminação\n", 17);
+            write(fd_pedido, "Servidor em processo de terminação\n", 38);
             close(fd_pedido);
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
             while (pipeRead[r] != '\0') {
