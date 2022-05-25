@@ -18,14 +18,18 @@
 int fd_leitura, fd_escrita;
 int flag_term = 1;
 
+/**
+ * @brief Rotina de término gracioso.
+ * 
+ * Altera a flag de termino e fecha o descritor de escrita do fifo principal que mantém o servidor bloqueado em leitura.
+ * 
+ * @param signum 
+ */
 void term_handler(int signum) {
-    write(1, "help\n", 5);
+    write(1, "Received SIGTERM (SIGINT)\n", 27);
     flag_term = 0;
     close(fd_escrita);
 }
-
-//estrutura de dados para implementar o dicionário dos limites
-//como determinar o número? começar com hardcode a 13
 
 /**
  * @brief Adicionar uma transformação ao dicionário de um Pedido
@@ -55,7 +59,6 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
         //rejeitar o pedido
         return 1;
     } else {
-        //char *s = strdup(transf);
         writeHT(h, transf, &c);
     }
     return 0;
@@ -78,10 +81,10 @@ int addTransfHT(char *transf, HT *h, HT *maxs) {
 int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
     *dest = malloc(sizeof(Pedido));
     (*dest)->id = n_pedido;
-    char buffer[33];
-    //supor que tem a prioridade, in e out
-    int r = 0, w, i;
     (*dest)->fd = fd;
+    //supor que tem a prioridade, in e out
+    char buffer[33];
+    int r = 0, w, i;
     w = 0;
     StringToBuffer(r, w, string, buffer)
     (*dest)->prio = strdup(buffer);
@@ -411,12 +414,12 @@ int removeCurr(Pedido *pedido, HT *curr, HT *maxs) {
  * @return int Número de bytes escritos
  */
 char *pedidoToString(Pedido *pedido, int *n) {
-    (*n) = 0;
+    (*n) = -1;
     int tmp = pedido->id;
     //pedido->id sempre >0
     while (tmp != 0) {
         tmp /= 10;
-        n++;
+        (*n)++;
     }
     (*n) += strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 22; //task + proc-file + 6 espaços + \n + \0 + ':'
     char *string = malloc(sizeof(char) * (*n));
@@ -455,15 +458,6 @@ int addCurr(Pedido *pedido, HT *curr, HT *maxs) {
 int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     //o servidor é executado com o config e com a pasta
     //todo teste para ver se não nos estão a tentar executar o server maliciosamente
-
-    if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
-        write(2, "Failed to open the named pipe\n", 31);
-        return -1;
-    }
-    if ((fd_escrita = open("entrada", O_WRONLY)) == -1) {
-        write(2, "Failed to open the named pipe\n", 31);
-        return -1;
-    }
 
     int r, w, n_transfs_pendingQ = 0;
     PendingQueue pendingQ[MAX_PRIORITY+1];
@@ -518,6 +512,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                         return -1;
                     } else if (w == 1) {
                         //pedido rejeitado
+                        write(pedido->fd, "Failed Request\n", 16);
                         deepFreePedido(pedido);
                         //avisar o cliente que deu asneira se tiver fd aberto lmao
                     } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
@@ -547,31 +542,55 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                         }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
-                    char **string = malloc(sizeof(char**));
-                    int i, bytes_read, j;
-                    for (i = proc->aux_array.last, j = 0; i != -1 && j < proc->entries; i = proc->aux_array.array[POS(i, 0)], j++) {
-                        (*string) = pedidoToString((Pedido *) proc->tbl[i].value, &(bytes_read));
-                        write(fd_pedido, (*string), bytes_read);
-                        free((*string));
+                    char buffer[1024];
+                    buffer[0] = '\0';
+                    //possível a partir dum array construir uma string com strcat, os bytes_read é o número de bytes necessários
+                    char **string = malloc(sizeof(char**) * proc->entries);
+                    int i, bytes_read = 0, j, count, total = 0, *c;
+                    for (i = proc->aux_array.last, j = 0; i != -1 && j<proc->entries; i = proc->aux_array.array[POS(i, 0)], j++) {
+                        //o pedidoToString dá malloc às strings e depois atira apontador
+                        string[j] = pedidoToString((Pedido *) proc->tbl[i].value, &(bytes_read));
+                        total += bytes_read;
                     }
-                    //possível a partir deste array construir uma string com strcat, os bytes_read é o número de bytes necessários
+                    for(i = 0; i<j; i++) {
+                        strcat(buffer, string[i]);
+                        free(string[i]);
+                    }
+                    //write(fd_pedido, buffer, total);
                     //escrever num só write
-
-                    int *c, count;
-                    char *buffer[1024]; //arranjar melhor maneira de fazer este buffer
+                    
                     for (i = maxs->aux_array.last; i!=-1;i = maxs->aux_array.array[POS(i,0)]) {
                         if (readHT(curr, (char*) (maxs->tbl[i].key), (void**) &c) == -1) {
                             count = 0;
                         } else {
                             count = *c;
                         }
-                        sprintf(buffer, "%s: %d/%d\n", (char*) (maxs->tbl[i].key), count, *((int*)(maxs->tbl[i].value)));
-                        write(fd_pedido, buffer, strlen(buffer));
+                        //concatenar strings com sprintf
+                        bytes_read = snprintf(buffer + total, 1024-total, "%s: %d/%d\n", (char*) (maxs->tbl[i].key), count, *((int*)(maxs->tbl[i].value)));
+                        if (total + bytes_read > 1024) {
+                            write(fd_pedido, buffer, total);
+                            total = 0;
+                            i = maxs->aux_array.array[POS(i,1)];
+                        } else {
+                            total += bytes_read;
+                        }
                     }
+                    write(fd_pedido, buffer, total); //só um write com todas as linhas prontas, só espero que elas não passem de 1024
                     free(string);
                     close(fd_pedido);
                 } else {
-                    //borradovski
+                    int fd_pedido;
+                    if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
+                        write(2, "Failed to open pipe to client\n", 31);
+                    }
+                    write(fd_pedido, "Pedido não reconhecido.\n", 26);
+                    close(fd_pedido);
+                    TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                    while (pipeRead[r] != '\0') {
+                        r++;
+                        TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
+                    }
+                    r++;
                 }
             }
         } else if (bytes_read_pipe > 0 && proc_pid_pos == -1) {
@@ -579,9 +598,8 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
             int fd_pedido;
             if ((fd_pedido = open(pipeParse, O_WRONLY)) == -1) {
                 write(2, "Failed to open pipe to client\n", 31);
-                //rejeita pedido
             }
-            write(fd_pedido, "Mano seu trouxa\n", 17);
+            write(fd_pedido, "Servidor em processo de terminação\n", 17);
             close(fd_pedido);
             TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
             while (pipeRead[r] != '\0') {
@@ -624,6 +642,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
 int main(int argc, char const *argv[]) {
     int r = 0;
     signal(SIGTERM, term_handler);
+    signal(SIGINT, term_handler);
     
     int pid_server = getpid();
     int tamanho = 0, tmp = pid_server;
@@ -636,6 +655,7 @@ int main(int argc, char const *argv[]) {
     write(1, buffer, tamanho+1);
 
     if((mkfifo("entrada", 0666)) == -1){
+        //auxílio para não estar constantemente a remover o ficheiro "entrada"
         unlink("entrada");
         if((mkfifo("entrada", 0666)) == -1){
             write(2, "Failed to create Named pipe entrada\n", 37);
@@ -643,49 +663,60 @@ int main(int argc, char const *argv[]) {
         }
     }
 
-    int fdConfig;
-    if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
-        //como validar um path (pasta)?
-        write(2, "Failed to open config file\n", 28);
+    if ((fd_leitura = open("entrada", O_RDONLY)) == -1) {
+        write(2, "Failed to open the named pipe\n", 31);
         return -1;
     }
 
-    HT *maxs = malloc(sizeof(HT));
-    if (initHT(maxs, INIT_DICT_SIZE, 1, STRING, INT) == -1) {
-        write(2, "No space for Hashtable", 23);
-        freeHT(maxs);
-        return -1;
-    }
-    //incializar a hashtables dos máximos
-    if (readConfig(fdConfig, maxs) == -1) {
-        write(2, "Failed to read config\n", 23);
-        freeHT(maxs);
-        return -1;
-    }
+    if (flag_term) {
+        if ((fd_escrita = open("entrada", O_WRONLY)) == -1) {
+            write(2, "Failed to open the named pipe\n", 31);
+            return -1;
+        }
 
-    //fix manhoso
-    HT *curr = malloc(sizeof(HT));
-    if (initHT(curr, INIT_DICT_SIZE, 0, STRING, INT) == -1) {
-        write(2, "No space for Hashtable\n", 24);
-        freeHT(maxs);
-        freeHT(curr);
-        return -1;
-    }
+        int fdConfig;
+        if ((fdConfig = open(argv[1], O_RDONLY)) == -1) {
+            //como validar um path (pasta)?
+            write(2, "Failed to open config file\n", 28);
+            return -1;
+        }
 
-    HT *proc = malloc(sizeof(HT));
-    if (initHT(proc, INIT_DICT_SIZE, 1, PID_T, PEDIDO) == -1) {
-        write(2, "No space for Hashtable\n", 24);
+        HT *maxs = malloc(sizeof(HT));
+        if (initHT(maxs, INIT_DICT_SIZE, 1, STRING, INT) == -1) {
+            write(2, "No space for Hashtable", 23);
+            freeHT(maxs);
+            return -1;
+        }
+        //incializar a hashtables dos máximos
+        if (readConfig(fdConfig, maxs) == -1) {
+            write(2, "Failed to read config\n", 23);
+            freeHT(maxs);
+            return -1;
+        }
+
+        //fix manhoso
+        HT *curr = malloc(sizeof(HT));
+        if (initHT(curr, INIT_DICT_SIZE, 0, STRING, INT) == -1) {
+            write(2, "No space for Hashtable\n", 24);
+            freeHT(maxs);
+            freeHT(curr);
+            return -1;
+        }
+
+        HT *proc = malloc(sizeof(HT));
+        if (initHT(proc, INIT_DICT_SIZE, 1, PID_T, PEDIDO) == -1) {
+            write(2, "No space for Hashtable\n", 24);
+            freeHT(maxs);
+            freeHT(curr);
+            freeHT(proc);
+            return -1;
+        }
+        r = run(argv[2], maxs, curr, proc);
+        
         freeHT(maxs);
         freeHT(curr);
         freeHT(proc);
-        return -1;
     }
-    if (r != -1) {
-        r = run(argv[2], maxs, curr, proc);
-    }
-    freeHT(maxs);
-    freeHT(curr);
-    freeHT(proc);
     unlink("entrada");
     write(1, "Sepukku gracioso!\n", 19);
     return r;
