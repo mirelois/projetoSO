@@ -338,17 +338,18 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
  * @return int Inteiro tratado como booleano.
  */
 int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
-    int i, s, *new, *c, *max;
+    int i, s, *new, *c, *max, c_int;
     for (i = 0, s = maxs->aux_array.last; s != -1 && i<maxs->entries; i++, s = maxs->aux_array.array[POS(s, 0)]) {
         if (readHT(pedido->hashtable, (maxs->tbl[s].key), (void **) &new) != -1 && readHT(maxs, (maxs->tbl[s].key), (void**) &max) != -1) {
             if (*new > 0) {
                 if (readHT(curr, (maxs->tbl[s].key), (void **) &c) == -1) {
                 //char *wr = strdup((char*)(maxs->tbl[s].key));
-                c = malloc(sizeof(int));
-                *c = 0;
-                writeHT(curr, (char*)(maxs->tbl[s].key), (void *) c);
+                c_int = 0;
+                writeHT(curr, (char*)(maxs->tbl[s].key), (void *) &c_int);
+                } else {
+                    c_int = *c;
                 }
-                if (*max - *c < *new) {
+                if (*max - c_int < *new) {
                     return 0;
                 }
             }
@@ -389,6 +390,10 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
         pedido = nodo->pedido;
         if (isPedidoExec(pedido, maxs, curr)) {
             queue[i].start = nodo->next;
+            free(nodo);
+            if (queue[i].start == NULL) {
+                queue[i].end = NULL;
+            }
             return pedido;
         }
     }
@@ -532,12 +537,12 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                             write(2, "Failed to write to curr\n", 25);
                         }
                         //avisar o cliente que foi adicionado aos em processamento
-                        int *pid_manager = malloc(sizeof(int));
-                        if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
+                        int pid_manager;
+                        if ((pid_manager = executaPedido(pedido, pasta)) == -1) {
                             write(pedido->fd, "Failed request\n", 16);
                             deepFreePedido(pedido);
                         } else {
-                            writeHT(proc, (void *) pid_manager, pedido);
+                            writeHT(proc, (void *) &pid_manager, pedido);
                         }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
@@ -624,12 +629,12 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                     write(2, "Failed to write to curr\n", 25);
                 }
                 //avisar o cliente que foi adicionado aos em processamento
-                int *pid_manager = (int *) malloc(sizeof(int), 1);
-                if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
+                int pid_manager;
+                if ((pid_manager = executaPedido(pedido, pasta)) == -1) {
                     write(pedido->fd, "Failed request\n", 16);
                     deepFreePedido(pedido);
                 } else {
-                    writeHT(proc, (void *) pid_manager, pedido);
+                    writeHT(proc, (void *) &pid_manager, pedido);
                 }
             }
         }

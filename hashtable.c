@@ -70,6 +70,7 @@ int freeValueHT(HT* h, int p, int flg) {
     if(h->value_type == PEDIDO) {
         if(flg){
             deepFreePedido(h->tbl[p].value);//deep free of pedido
+            free(h->tbl[p].value);
         }
     }else if (h->value_type == INT) {
         free(h->tbl[p].value);// simple free for integer
@@ -347,6 +348,8 @@ int writeHT (HT *h, void* key, void* value) {
         h->used = new_h->used;
         h->entries = new_h->entries;
         
+
+        free(new_h);
     }
     //writes value to hashtable
     return writeHTaux(h, key, value);
