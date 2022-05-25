@@ -309,8 +309,8 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
  * @return int Mensagem de erro
  */
 int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
-    LList *new;
-    if ((new = malloc(sizeof(LList))) == NULL) {
+    LList *new = malloc(sizeof(LList));
+    if (new == NULL) {
         write(2, "Failed to create LList", 23);
         return -1;
     }
@@ -422,8 +422,8 @@ char *pedidoToString(Pedido *pedido, int *n) {
         (*n)++;
     }
     (*n) += strlen(pedido->out) + strlen(pedido->pedido) + strlen(pedido->in) + strlen(pedido->prio) + 22; //task + proc-file + 6 espaços + \n + \0 + ':'
-    char *string = malloc(sizeof(char) * (*n));
-    sprintf(string, "Task %d: proc-file %s %s %s %s\n", pedido->id, pedido->prio, pedido->in, pedido->out, pedido->pedido); //como só é usado para imprimir mais vale por o \n
+    char *string = malloc((*n) + 1);
+    snprintf(string, (*n)+1,"Task %d: proc-file %s %s %s %s\n", pedido->id, pedido->prio, pedido->in, pedido->out, pedido->pedido); //como só é usado para imprimir mais vale por o \n
     return string;
 }
 
@@ -525,27 +525,26 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                         sprintf(pipeParse, "pending %s\n", pedido->pedido);
                         write(pedido->fd, pipeParse, strlen(pipeParse));
                     }
-                    pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
-                    if (pedido != NULL) {
+                    for (pedido = choosePendingQueue(pendingQ, maxs, curr); pedido != NULL; pedido = choosePendingQueue(pendingQ, maxs, curr)) {
                         n_transfs_pendingQ--;
                         //adicionar aos em processamento
                         if (addCurr(pedido, curr, maxs) == -1) {
                             write(2, "Failed to write to curr\n", 25);
                         }
+                        //avisar o cliente que foi adicionado aos em processamento
                         int *pid_manager = malloc(sizeof(int));
                         if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
-                            write(pedido->fd, "Failed Request\n", 16);
+                            write(pedido->fd, "Failed request\n", 16);
                             deepFreePedido(pedido);
-                        }
-                        else if (writeHT(proc, (void *) pid_manager, pedido) == -1) {
-                            write(2, "Failed to write to proc\n", 5);
+                        } else {
+                            writeHT(proc, (void *) pid_manager, pedido);
                         }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
                     char buffer[1024];
                     buffer[0] = '\0';
                     //possível a partir dum array construir uma string com strcat, os bytes_read é o número de bytes necessários
-                    char **string = malloc(sizeof(char**) * proc->entries);
+                    char **string = malloc(sizeof(char*) * proc->entries);
                     int i, bytes_read = 0, j, count, total = 0, *c;
                     for (i = proc->aux_array.last, j = 0; i != -1 && j<proc->entries; i = proc->aux_array.array[POS(i, 0)], j++) {
                         //o pedidoToString dá malloc às strings e depois atira apontador
@@ -610,23 +609,22 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
         } else if (proc_pid_pos >= 0) {
             //deve de ser termino do manager
             //int key = atoi(pipeParse);
-            Pedido *pedido;
-            //retirar aos curr
-            readHT(proc, (void *) &pid_read, &pedido);
-            removeCurr(pedido, curr, maxs);
+            removeCurr(pedido_read, curr, maxs);
             //retirar aos proc
             waitpid(pid_read, &status, 0);
             //testar os erros do status
             deleteHT(proc, (void *) &pid_read, 1);
-            pedido = choosePendingQueue(pendingQ, maxs, curr); //já remove da pending queue
-            if (pedido != NULL) {
+
+            //só está a executar um de cada vez
+            Pedido *pedido;
+            for (pedido = choosePendingQueue(pendingQ, maxs, curr); pedido != NULL; pedido = choosePendingQueue(pendingQ, maxs, curr)) {
                 n_transfs_pendingQ--;
                 //adicionar aos em processamento
                 if (addCurr(pedido, curr, maxs) == -1) {
                     write(2, "Failed to write to curr\n", 25);
                 }
                 //avisar o cliente que foi adicionado aos em processamento
-                int *pid_manager = malloc(sizeof(int));
+                int *pid_manager = (int *) malloc(sizeof(int), 1);
                 if ((*pid_manager = executaPedido(pedido, pasta)) == -1) {
                     write(pedido->fd, "Failed request\n", 16);
                     deepFreePedido(pedido);
