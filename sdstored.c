@@ -527,7 +527,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                         n_transfs_pendingQ++;
                         //executaPedido(pedido, pasta);
                         //avisar o cliente que foi posto em pending
-                        sprintf(pipeParse, "pending %s\n", pedido->pedido);
+                        sprintf(pipeParse, "pending Task: #%d\n", pedido->id);
                         write(pedido->fd, pipeParse, strlen(pipeParse));
                     }
                     for (pedido = choosePendingQueue(pendingQ, maxs, curr); pedido != NULL; pedido = choosePendingQueue(pendingQ, maxs, curr)) {
