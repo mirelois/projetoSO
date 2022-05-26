@@ -1,11 +1,11 @@
 #include "sdstore.h"
 #include "init.h"
 
-/**
+/** \brief Função que executa o cliente
  *
- * @param argc
- * @param argv
- * @return
+ * @param argc Número de argumentos
+ * @param argv Argumentos
+ * @return código de saída
  */
 int main(int argc, char const *argv[])
 {

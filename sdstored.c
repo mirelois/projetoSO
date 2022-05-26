@@ -642,6 +642,13 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     close(fd_leitura);
 }
 
+/**
+ * @brief Função que executa o servidor
+ * 
+ * @param argc Número de argumentos
+ * @param argv Argumentos
+ * @return código de saída 
+ */
 int main(int argc, char const *argv[]) {
     int r = 0;
     signal(SIGTERM, term_handler);
