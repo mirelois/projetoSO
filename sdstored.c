@@ -131,8 +131,6 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
         write(2,"Failed to open file in\n", 24);
         return -1;
     }
-    bytes_input = lseek(fd_i, 0, SEEK_END);
-    lseek(fd_i, 0, SEEK_SET);
     if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
         write(2, "Failed to open file out\n", 25);
         return -1;
@@ -282,6 +280,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             //2) fazemos write para um pipe (saber o tamanho) e fazer dup do pipe para o stdin
                 //para quê? não vale mais a pena 1) e depois sacar o tamanho?
                 //mais constante
+        bytes_input = lseek(fd_i, 0, SEEK_END);
         bytes_output = lseek(fd_o, 0, SEEK_END);
         close(fd_i);
         close(fd_o);
