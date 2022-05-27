@@ -478,7 +478,8 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     Pedido *pedido_read;
     r = 0;
     //a flag_term indica que o servidor ainda não recebeu SIGTERM ou SIGINT
-    //n_transfs_pendingQ é o número de transformações 
+    //n_transfs_pendingQ é o número de transformações
+    //proc->entries é o número de pedidos na lista de espera
     while(flag_term || n_transfs_pendingQ > 0 || proc->entries) {
         TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         w = 0;
