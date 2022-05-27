@@ -308,7 +308,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
  * @param queue Queue onde adicionar
  * @return int Mensagem de erro
  */
-int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
+int addPendingQueue(Pedido *pedido, PendingQueue *queue, int *n_trasnfs_pending) {
     LList *new = malloc(sizeof(LList));
     if (new == NULL) {
         write(2, "Failed to create LList", 23);
@@ -324,6 +324,7 @@ int addPendingQueue(Pedido *pedido, PendingQueue *queue) {
     if (queue[p].start == NULL) {
         queue[p].start = new;
     }
+    (*n_trasnfs_pending)++;
     return 0;
 }
 
@@ -369,7 +370,7 @@ int isPedidoExec(Pedido *pedido, HT *maxs, HT *curr) {
  * @param curr Hashtable dos pedidos em processamento
  * @return Pedido* 
  */
-Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
+Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr, int *n_transfs_pendingQ) {
     int i = MAX_PRIORITY;
     LList *nodo;
     Pedido *pedido;
@@ -394,6 +395,7 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr) {
             if (queue[i].start == NULL) {
                 queue[i].end = NULL;
             }
+            (*n_transfs_pendingQ)--;
             return pedido;
         }
     }
@@ -475,6 +477,8 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
     char pipeRead[MAX_BUFF], pipeParse[MAX_BUFF];
     Pedido *pedido_read;
     r = 0;
+    //a flag_term indica que o servidor ainda não recebeu SIGTERM ou SIGINT
+    //n_transfs_pendingQ é o número de transformações 
     while(flag_term || n_transfs_pendingQ > 0 || proc->entries) {
         TestMaxPipe(r, bytes_read_pipe, fd_leitura, pipeRead)
         w = 0;
@@ -520,18 +524,18 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                         write(pedido->fd, "Failed Request\n", 16);
                         deepFreePedido(pedido);
                         //avisar o cliente que deu asneira se tiver fd aberto lmao
-                    } else if (addPendingQueue(pedido, pendingQ)==-1) { // Fazer write(pedido->fd) com pending
+                    } else if (addPendingQueue(pedido, pendingQ, &n_transfs_pendingQ)==-1) { // Fazer write(pedido->fd) com pending
                         deepFreePedido(pedido);
                         return -1;
                     } else {
-                        n_transfs_pendingQ++;
                         //executaPedido(pedido, pasta);
                         //avisar o cliente que foi posto em pending
                         sprintf(pipeParse, "pending Task: #%d\n", pedido->id);
                         write(pedido->fd, pipeParse, strlen(pipeParse));
                     }
-                    for (pedido = choosePendingQueue(pendingQ, maxs, curr); pedido != NULL; pedido = choosePendingQueue(pendingQ, maxs, curr)) {
-                        n_transfs_pendingQ--;
+                    for (   pedido = choosePendingQueue(pendingQ, maxs, curr, &n_transfs_pendingQ); pedido != NULL; 
+                            pedido = choosePendingQueue(pendingQ, maxs, curr, &n_transfs_pendingQ)) {
+                        
                         //adicionar aos em processamento
                         if (addCurr(pedido, curr, maxs) == -1) {
                             write(2, "Failed to write to curr\n", 25);
@@ -622,8 +626,9 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
 
             //só está a executar um de cada vez
             Pedido *pedido;
-            for (pedido = choosePendingQueue(pendingQ, maxs, curr); pedido != NULL; pedido = choosePendingQueue(pendingQ, maxs, curr)) {
-                n_transfs_pendingQ--;
+            for (   pedido = choosePendingQueue(pendingQ, maxs, curr, &n_transfs_pendingQ); pedido != NULL; 
+                    pedido = choosePendingQueue(pendingQ, maxs, curr, &n_transfs_pendingQ)) {
+    
                 //adicionar aos em processamento
                 if (addCurr(pedido, curr, maxs) == -1) {
                     write(2, "Failed to write to curr\n", 25);

@@ -33,14 +33,17 @@ typedef struct hashTable {
 } HT;
 
 typedef struct pedido {
-    //guardar strings para não sobrecarregar fd's do servidor
     int id;
+    //inteiro com o número de transformações
     int n_transfs;
     int fd;
-    //apontador para hashtable para guardar os valores dos pedidos
+    //apontador para hashtable que associa nome de um pedido ao número de vezes que ocorre
     HT *hashtable;
+    //string com a prioridade
     char *prio;
+    //string com o pedido (completo)
     char *pedido;
+    //strings de nomes de ficheiros
     char *in;
     char *out;
 }Pedido;
