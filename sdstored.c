@@ -26,7 +26,7 @@ int flag_term = 1;
  * @param signum 
  */
 void term_handler(int signum) {
-    write(1, "Received SIGTERM (SIGINT)\n", 27);
+    write(1, "Received SIGTERM or SIGINT\n", 28);
     flag_term = 0;
     close(fd_escrita);
 }

@@ -81,22 +81,28 @@ int main(int argc, char const *argv[])
         argv[i-2] = "proc-file";
         argv[i-1] = prio;
         n = strArrayToString(argc-i+2, argv+i-2, &string, pid); //testar erro?
-        if((fd_escrita = open("entrada", O_WRONLY)) == -1){
-            write(2, "Failed to open the named pipe\n", 31);
+        if (n < MAX_BUFF) {
+            if((fd_escrita = open("entrada", O_WRONLY)) == -1){
+                write(2, "Failed to open the named pipe to server\n", 41);
+                unlink(pidBuffer);
+                return -1;
+            }
+            write(fd_escrita, string, n);
+            free(string);
+            close(fd_escrita);
+            if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
+                write(2, "Failed to open the named pipe from server\n", 43);
+                unlink(pidBuffer);
+                return -1;
+            }
+            char buffer[60]; // tamanho 60 por agora (estimativa maxima)
+            while((bytesRead = read(fd_leitura, buffer, 60)) > 0){ // tenta ler tudo?
+                write(1, buffer, bytesRead);
+            }
+            close(fd_leitura);
             unlink(pidBuffer);
-            exit(-1);
-        }
-        write(fd_escrita, string, n);
-        free(string);
-        close(fd_escrita);
-        if ((fd_leitura = open(pidBuffer, O_RDONLY)) == -1) {
-            write(2, "Failed to open the named pipe\n", 31);
-            unlink(pidBuffer);
-            return -1;
-        }
-        char buffer[60]; // tamanho 60 por agora (estimativa maxima)
-        while((bytesRead = read(fd_leitura, buffer, 60)) > 0){ // tenta ler tudo?
-            write(1, buffer, bytesRead);
+        } else {
+            write(1, "Pedido demasiado grande para comunicar\n", 40);
         }
         //vai ler e escrever 3 vezes
         //int bytes_read;
@@ -106,8 +112,6 @@ int main(int argc, char const *argv[])
         //    write(1, buffer, bytes_read);
         //}
         //read pipe da conclusão
-        close(fd_leitura);
-        unlink(pidBuffer);
     }
     return 0;
 }

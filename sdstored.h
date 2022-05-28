@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include <fcntl.h>
 #include "init.h"
+#include "limits.h"
 #include "malloc.h"
 
 typedef struct nodo {
