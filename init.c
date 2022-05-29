@@ -1,7 +1,15 @@
 #include "init.h"
 #include "includes.h"
 
-
+/**
+ * @brief Função torna um array de string em uma string.
+ * 
+ * @param n indices.
+ * @param array array de strings.
+ * @param dest string
+ * @param pid pid
+ * @return int código de sucesso
+ */
 int strArrayToString(int n, char *array[], char **dest, pid_t pid) {
     if (n>0) {
         char *sep = " ", buffer[33];
@@ -36,6 +44,14 @@ int strArrayToString(int n, char *array[], char **dest, pid_t pid) {
     return 0;
 }
 
+
+/**
+ * @brief Função que lê o config
+ * 
+ * @param fd fd.
+ * @param hash_table hashtable para ler. 
+ * @return int código de sucesso.
+ */
 int readConfig(int fd, HT *hash_table) {
     //ver os casos em que pode falhar
     int bytes_read, i = 0, word_size, tmp;

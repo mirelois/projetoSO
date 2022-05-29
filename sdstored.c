@@ -401,6 +401,14 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr, int *n_tran
     return NULL;
 }
 
+/**
+ * @brief Remove pedido dos current.
+ * 
+ * @param pedido Pedido em questão
+ * @param curr Hashtable dos current
+ * @param maxs Hashtable dos maxs
+ * @return int código de sucesso
+ */
 int removeCurr(Pedido *pedido, HT *curr, HT *maxs) {
     int i, *read, *sub;
     for (i = maxs->aux_array.last; i != -1; i = maxs->aux_array.array[POS(i,0)]) {
@@ -433,6 +441,14 @@ char *pedidoToString(Pedido *pedido, int *n) {
     return string;
 }
 
+/**
+ * @brief Adiciona pedido aos current.
+ * 
+ * @param pedido Pedido em questão
+ * @param curr Hashtable dos current
+ * @param maxs Hashtable dos maxs
+ * @return int código de sucesso
+ */
 int addCurr(Pedido *pedido, HT *curr, HT *maxs) {
     int i, *add, *c, count = 0;
     for (i = maxs->aux_array.last; i!=-1; i = maxs->aux_array.array[POS(i,0)]) {
