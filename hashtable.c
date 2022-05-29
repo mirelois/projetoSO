@@ -448,7 +448,7 @@ int deleteHT (HT *h, void* key, int free_pedido_flag) {
     return p;
 }
 
-//to be eliminated
+/*to be eliminated
 int printHT(HT *h) {
     if(h->key_type == PID_T){
         for(int i = 0; i < h->size; i++) {
@@ -468,6 +468,7 @@ int printHT(HT *h) {
     return 0;
     
 }
+*/
 
 /**
  * @brief frees allocated memory pointed to by dest
@@ -485,9 +486,10 @@ void deepFreePedido(Pedido *dest) {
     close(dest->fd);
 }
 
-//to be eliminated
+/*to be eliminated
 int printPedido(Pedido *p) {
     printf("id->%d\nn_tranfs->%d\nprio->%s\npedido->%s\nin->%s\nout->%s\n", p->id, p->n_transfs, p->prio,p->pedido, p->in, p->out);
     printf("hashtable:\n");
     printHT(p->hashtable);
 }
+*/
