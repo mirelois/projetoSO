@@ -12,7 +12,7 @@
  */
 int strArrayToString(int n, char *array[], char **dest, pid_t pid) {
     if (n>0) {
-        char *sep = " ", buffer[33];
+        char *sep = " ";
         int i,j,c,s;
         for (i = 0, c = 0, s = 0; i<n; i++, s++) {
             c += strlen(array[i]);

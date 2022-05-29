@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
         pid_t pid = getpid();
         char pidBuffer[32]; // 32 inicial mas são menos que isto 
         char *string, prio[2] = "0";
-        int i = 2, n, fd_escrita, fd_leitura, bytesRead, j;
+        int i = 2, n, fd_escrita, fd_leitura, bytesRead;
 
         sprintf(pidBuffer, "%d", pid);
         if((mkfifo(pidBuffer, 0666)) == -1){

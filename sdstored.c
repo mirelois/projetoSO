@@ -121,7 +121,7 @@ int createPedido(char *string, Pedido **dest, HT *maxs, int n_pedido, int fd) {
  * @param fd_escrita Pid do pipe com nome do servidor onde escrever
  * @return pid_t Pid do manager que é devolvido para o servidor
  */
-pid_t executaPedido(Pedido *pedido, char *pasta) {
+pid_t executaPedido(Pedido *pedido, char const *pasta) {
     //fazer isto num manager para não mandar o server abaixo
     //fazer com que o manager seja uma função auxiliar
         //why? código. constantemente copiar o dicionário para cada manager SE COPIAR METE FORK NO MAIN
@@ -195,10 +195,11 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
             //close(fd_i);
             int p[pedido->n_transfs-1][2], i;
             for (i = 0; i < pedido->n_transfs; i++) { //fork->dups alternantes (i%2)->exec
-                if(i != pedido->n_transfs-1)
+                if(i != pedido->n_transfs-1){
                     if(pipe(p[i]) == -1){
                         write(2, "Failed pipe\n", 13);
                         _exit(-1);
+                    }
                     }else{
                         //if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
                         //    write(2, "Failed to open file out\n", 25);
@@ -412,7 +413,7 @@ Pedido *choosePendingQueue(PendingQueue queue[], HT *maxs, HT *curr, int *n_tran
 int removeCurr(Pedido *pedido, HT *curr, HT *maxs) {
     int i, *read, *sub;
     for (i = maxs->aux_array.last; i != -1; i = maxs->aux_array.array[POS(i,0)]) {
-        if (readHT(curr, maxs->tbl[i].key, &read) != -1 && readHT(pedido->hashtable, maxs->tbl[i].key, &sub) != -1) {
+        if (readHT(curr, maxs->tbl[i].key, (void **) &read) != -1 && readHT(pedido->hashtable, maxs->tbl[i].key, (void **) &sub) != -1) {
             *read -= *sub;
             //escrita muito manhosa porque este é literalmente o apontador da hashtable
         }
@@ -454,8 +455,8 @@ int addCurr(Pedido *pedido, HT *curr, HT *maxs) {
     for (i = maxs->aux_array.last; i!=-1; i = maxs->aux_array.array[POS(i,0)]) {
         //transf = strdup((char *) (maxs->tbl[i].key));
         //preciso deste strdup? se a chave já existe a hashtable faz clone ou apenas deita ao lixo este apontador?
-        if (readHT(pedido->hashtable, maxs->tbl[i].key, &add) != -1) {
-            if (readHT(curr, maxs->tbl[i].key, &c) == -1) {
+        if (readHT(pedido->hashtable, maxs->tbl[i].key, (void **) &add) != -1) {
+            if (readHT(curr, maxs->tbl[i].key, (void **) &c) == -1) {
                 count = 0;
             } else {
                 count = *c;
@@ -661,6 +662,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
         }
     }
     close(fd_leitura);
+    return 0;
 }
 
 /**

@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "hashtable.h"
+
 
 /**
  * @brief hash function
@@ -246,7 +248,7 @@ int writeHTaux (HT *h, void* key, void* value) {
     int flag = 1;
 
     //increments p until free position is found
-    for(p; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
+    for(; !isfreeHT(h, p) && (flag = keycmp(h, key,(h->tbl)[p].key)); p = (p+1)%(h->size));
 
     //if value is already allocated free it
     if(h->tbl[p].value != NULL){
