@@ -141,8 +141,8 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
         write(2,"Failed Fork to Manager\n", 24);
     } else if (manager == 0) {
         int r=0, w, tamanhoinicial = strlen(pasta);
-        char buffer[tamanhoinicial + 33];
-        sprintf(buffer, "processing %s\n", pedido->pedido);
+        char buffer[tamanhoinicial + MAX_TRANSF_SIZE + 1];
+        sprintf(buffer, "processing Task #%d\n", pedido->id);
         write(pedido->fd, buffer, strlen(buffer));
         for(w=0; pasta[w]!='\0'; w++)
             buffer[w] = pasta[w];
@@ -293,7 +293,7 @@ pid_t executaPedido(Pedido *pedido, char *pasta) {
         sprintf(buffer, "%d", tamanho);
         write(fd_escrita, buffer, strlen(buffer)+1);
         char concluded[100]; // mudar tamanho
-        sprintf(concluded, "concluded (bytes-input: %d, bytes-output: %d)\n", bytes_input, bytes_output);
+        sprintf(concluded, "concluded #%d (bytes-input: %d, bytes-output: %d)\n", pedido->id, bytes_input, bytes_output);
         write(pedido->fd, concluded, strlen(concluded));
         _exit(ret);
     }
@@ -530,7 +530,7 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                     } else {
                         //executaPedido(pedido, pasta);
                         //avisar o cliente que foi posto em pending
-                        sprintf(pipeParse, "pending Task: #%d\n", pedido->id);
+                        sprintf(pipeParse, "Pending Task: #%d\n", pedido->id);
                         write(pedido->fd, pipeParse, strlen(pipeParse));
                     }
                     for (   pedido = choosePendingQueue(pendingQ, maxs, curr, &n_transfs_pendingQ); pedido != NULL; 
