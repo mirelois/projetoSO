@@ -733,6 +733,6 @@ int main(int argc, char const *argv[]) {
         freeHT(proc);
     }
     unlink("entrada");
-    write(1, "Sepukku gracioso!\n", 19);
+    write(1, "Término gracioso do servidor\n", 31);
     return r;
 }
