@@ -73,7 +73,7 @@ int main(int argc, char const *argv[])
         
         if (strcmp(argv[2], "-p") == 0) {
             n = atoi(argv[3]);
-            if (n >= 0 && n < 5)
+            if (n >= 0 && n <= 5)
                 prio[0] = '0'+n;
             i = 4;
         }

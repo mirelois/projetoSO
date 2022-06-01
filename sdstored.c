@@ -28,7 +28,9 @@ int flag_term = 1;
 void term_handler(int signum) {
     write(1, "Received SIGTERM or SIGINT\n", 28);
     flag_term = 0;
-    close(fd_escrita);
+    //erro não pode fechar o fd_escrita -> os novos managers não vão saber para onde escrever
+    //close(fd_escrita);
+    
 }
 
 /**
@@ -129,10 +131,12 @@ pid_t executaPedido(Pedido *pedido, char const *pasta) {
     int ret = 0, bytes_input, bytes_output, fd_i, fd_o;
     if((fd_i = open(pedido->in, O_RDONLY)) == -1){
         write(2,"Failed to open file in\n", 24);
+        //ret = -1;
         return -1;
     }
     if((fd_o = open(pedido->out, O_CREAT | O_TRUNC | O_WRONLY, 0666)) == -1){
         write(2, "Failed to open file out\n", 25);
+        //ret = -1;
         return -1;
     }
     pid_t manager;
@@ -176,7 +180,7 @@ pid_t executaPedido(Pedido *pedido, char const *pasta) {
                     wait(&status);
                     if (!WIFEXITED(status) || WEXITSTATUS(status) == 255) {
                         write(2, "Failed Exec or Transf\n", 23);
-                        _exit(-1);
+                        //_exit(-1);
                     }
                 }
         } else {
@@ -554,9 +558,6 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                             pedido = choosePendingQueue(pendingQ, maxs, curr, &n_transfs_pendingQ)) {
                         
                         //adicionar aos em processamento
-                        if (addCurr(pedido, curr, maxs) == -1) {
-                            write(2, "Failed to write to curr\n", 25);
-                        }
                         //avisar o cliente que foi adicionado aos em processamento
                         int pid_manager;
                         if ((pid_manager = executaPedido(pedido, pasta)) == -1) {
@@ -564,6 +565,9 @@ int run(char const *pasta, HT *maxs, HT *curr, HT *proc) {
                             deepFreePedido(pedido);
                         } else {
                             writeHT(proc, (void *) &pid_manager, pedido);
+                            if (addCurr(pedido, curr, maxs) == -1) {
+                                write(2, "Failed to write to curr\n", 25);
+                            }
                         }
                     }
                 } else if (strcmp(pipeParse, "status") == 0) {
