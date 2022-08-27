@@ -282,14 +282,18 @@ int writeHTaux (HT *h, void* key, void* value) {
 
         //copy key from key to hashtable
         if (h->key_type == STRING) {
+            if(keycmp(h, h->tbl[p].key, (void*)EMPTY_STRING)){
+                h->used++;//increment used if key is being put in EMPTY space
+            }
             strncpy(h->tbl[p].key, (char*)key, MAX_TRANSF_SIZE);
         }else if (h->key_type == PID_T) {
+            if(keycmp(h, h->tbl[p].key, (void*)EMPTY_PID_T)){
+                h->used++;//increment used if key is being put in EMPTY space
+            }
             *(pid_t*)(h->tbl[p].key) = *(pid_t*)(key);
         }else{
             return -1;
         }
-
-        h->used++;//increment used
         h->entries++;//increment entries
 
     }
